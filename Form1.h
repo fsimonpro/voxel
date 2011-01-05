@@ -217,10 +217,14 @@ private: System::Void ButtonGenerate_Click(System::Object^  sender, System::Even
 
 			//if (outputpath != 0)
 
+			 ProcessImage::ComputeVoxel();
+
 			Bitmap^ image1 = gcnew Bitmap(200, 100);
 			int x,y;
 			 // Graphics flagGraphics = Graphics.FromImage(flag);
 
+
+			//todo penser à utiliser lockbits et unlockbits
 			 for ( x = 0; x < image1->Width; x++ )
 			 {
 				 for ( y = 0; y < image1->Height; y++ )

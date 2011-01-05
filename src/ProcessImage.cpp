@@ -19,7 +19,7 @@
 Paths g_curpath;
 
 FIBITMAP* g_curpictures;
-
+FIBITMAP* g_curheightmap;
 
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #define	MAX(_a,_b) ((_a) < (_b) ? (_b) : (_a))
@@ -31,6 +31,7 @@ int g_luminosity = 0;
 double g_constraste = 1;
 int g_saturation = 0;
 
+
 void ComputeHSVFromRGB(BYTE r,BYTE g, BYTE b, double &h,double &s, double &v);
 void ComputeRGBFromHSV(double h,double s, double v,BYTE &r,BYTE &g,BYTE &b);
 
@@ -38,111 +39,6 @@ string ConvertToString(int n)
 {	ostringstream o;
 	o<<n;
 	return o.str();
-}
-
-void AddLuminosity(BYTE &b,BYTE &g,BYTE &r)
-{
-	b = BOUND(b+g_luminosity,0,255);
-	g = BOUND(g+g_luminosity,0,255);
-	r = BOUND(r+g_luminosity,0,255);
-}
-
-void AddContraste(BYTE &b,BYTE &g,BYTE &r)
-{
-	b = BOUND(b*g_constraste,0,255);
-	g = BOUND(g*g_constraste,0,255);
-	r = BOUND(r*g_constraste,0,255);
-}
-
-void AddSaturation(BYTE &b,BYTE &g,BYTE &r)
-{
-	int maxcol = MAX(b,MAX(g,r));
-	int mincol = MIN(b,MIN(g,r));
-	int delta = maxcol-mincol;
-
-	if (delta == 0) return;
-
-	double h,s,v;
-
-
-	ComputeHSVFromRGB(r,g,b,h,s,v);
-	s = BOUND(s + (double)g_saturation/255.0f,0.0f,1.0f);
-	ComputeRGBFromHSV(h,s,v,r,g,b);
-
-}
-
-void ComputeHSVFromRGB(BYTE r,BYTE g, BYTE b, double &h,double &s, double &v)
-{
-	//on renvoit les valeurs entre 0 et 1
-	double realr = (double)r /255.f;
-	double realg = (double)g /255.f;
-	double realb = (double)b /255.f;
-
-	double maxcol = MAX(realb,MAX(realg,realr));
-	double mincol = MIN(realb,MIN(realg,realr));
-	double delta = maxcol-mincol;
-
-	if (maxcol > 0)
-		s = delta / maxcol;
-	else
-		s = 0;
-
-	v = maxcol;
-
-	if (delta == 0) 
-		h =0;
-	else
-	{
-		if (maxcol == realr)
-			h = (realg-realb)/(6.0f*delta);
-		else if (maxcol == realg)
-			h = (realb-realr)/(6.0f*delta) + 1.0f/3.0f;
-		else if (maxcol == realb)
-			h = (realr-realg)/(6.0f*delta) + 2.0f/3.0f;
-	}
-
-	if (h < 0.0f)
-		h+=1.0f;
-	
-	if (h > 1.0f)
-		h-=1.0f;
-
-
-}
-
-
-void ComputeRGBFromHSV(double h,double s, double v,BYTE &r,BYTE &g,BYTE &b)
-{
-	double var_i,var_1,var_2,var_3,var_h,var_r,var_g,var_b;
-	
-	if ( s == 0 )                       //HSV from 0 to 1
-	{
-		r = v * 255;
-		g = v * 255;
-		b = v * 255;
-	}
-	else
-	{
-		var_h = h * 6;
-		if ( var_h == 6 ) var_h = 0;      //H must be < 1
-		
-		var_i = int( var_h );             //Or ... var_i = floor( var_h )
-		var_1 = v * ( 1 - s );
-		var_2 = v * ( 1 - s * ( var_h - var_i ) );
-		var_3 = v * ( 1 - s * ( 1 - ( var_h - var_i ) ) );
-
-		if      ( var_i == 0 ) { var_r = v     ; var_g = var_3 ; var_b = var_1; }
-		else if ( var_i == 1 ) { var_r = var_2 ; var_g = v     ; var_b = var_1; }
-		else if ( var_i == 2 ) { var_r = var_1 ; var_g = v     ; var_b = var_3; }
-		else if ( var_i == 3 ) { var_r = var_1 ; var_g = var_2 ; var_b = v;     }
-		else if ( var_i == 4 ) { var_r = var_3 ; var_g = var_1 ; var_b = v;     }
-		else                   { var_r = v     ; var_g = var_1 ; var_b = var_2; }
-
-		r = var_r * 255;                //rgb results from 0 to 255
-		g = var_g * 255;
-		b = var_b * 255;
-	}
-
 }
 
 bool stringpred(const std::string& lhs, const std::string& rhs)
@@ -166,7 +62,8 @@ void ProcessImage::SetExportDir(string dir)
 //construit l'image finale à partir de g_pictures
 FIBITMAP* ProcessImage::BuildImages(FIBITMAP* input)
 {
-	WORD xmain,ymain;
+	/*
+WORD xmain,ymain;
 	WORD height,width;
 	BYTE r,g,b;
 
@@ -218,7 +115,8 @@ FIBITMAP* ProcessImage::BuildImages(FIBITMAP* input)
 	}
 
 	return result;
-
+*/
+	return 0;
 }
 
 
@@ -230,7 +128,11 @@ void ProcessImage::SetName(string name)
 	g_psdname = name;
 }
 
-
+void ProcessImage::ComputeVoxel()
+{
+	if (!g_curheightmap) 
+		g_curheightmap = FreeImage_Load(FIF_GIF,"height.gif");
+}
 
 //charge l'image, appelle le process dessu et la sauvegarde
 string ProcessImage::ComputeOutput()
@@ -286,21 +188,5 @@ string ProcessImage::GetCurrentImportPath()
 
 	return "c:\\";
 
-}
-
-void ProcessImage::SetLuminosity(int l)
-{
-	g_luminosity = l;
-}
-
-void ProcessImage::SetContraste(int c)
-{
-	//on fonctionne en pourcentage
-	g_constraste = ((double)c)/100.0f;
-}
-
-void ProcessImage::SetSaturation(int s)
-{
-	g_saturation = s;
 }
 

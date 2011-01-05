@@ -28,10 +28,6 @@ namespace ProcessImage
 
 	string GetCurrentImportPath();
 
-	void SetLuminosity(int l);
-
-	void SetContraste(int c);
-
-	void SetSaturation(int s);
+	void ComputeVoxel();
 
 }
