@@ -35,9 +35,11 @@ string g_psdname = DEFAULTOUTPUTNAME;
 void ComputeHSVFromRGB(BYTE r,BYTE g, BYTE b, double &h,double &s, double &v);
 void ComputeRGBFromHSV(double h,double s, double v,BYTE &r,BYTE &g,BYTE &b);
 
-double g_curangle = -2.0;
-double g_curposx = 100;
-double g_curposy = 100;
+double g_curangle = -2.0f;
+unsigned g_curposx = 500;
+unsigned g_curposy = 500;
+unsigned g_curposz = 40;
+
 
 #define FOV 0.7
 
@@ -70,10 +72,11 @@ void ProcessImage::Turn(bool left)
 
 
 #define STEPMOVE  20
-void ProcessImage::Move(int dirx,int diry)
+void ProcessImage::Move(int dirx,int diry,int dirz)
 {
 	g_curposy += diry*STEPMOVE;
 	g_curposx += dirx*STEPMOVE;
+	g_curposz += dirz*STEPMOVE;
 }
 
 
@@ -160,6 +163,7 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 	BYTE curheight;
 	unsigned int LastDist[SCREENSIZE][SCREENSIZE]; //buffer type zbuffer
 	unsigned int curdist;
+	unsigned int widthheightmap,heightheightmap;
 
 	int curxoutput; 
 	if (!g_curheightmap) 
@@ -167,8 +171,6 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 	if (!g_curalbedo)
 		g_curalbedo = FreeImage_Load(FIF_TARGA,"albedo.tga");
 
-
-	FREE_IMAGE_TYPE image_type = FreeImage_GetImageType(g_curalbedo);
 
 	memset(&LastDist,0,SCREENSIZE*SCREENSIZE*sizeof(unsigned int));
 
@@ -178,15 +180,21 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 	BYTE *bitsalbedo = (BYTE*)FreeImage_GetBits(g_curalbedo);
 	unsigned pitchalbedo = FreeImage_GetPitch(g_curalbedo);
 
+	BYTE *bitsheightmap = (BYTE*)FreeImage_GetBits(g_curheightmap);
+	unsigned pitchheightmap = FreeImage_GetPitch(g_curheightmap);
+
+
+	widthheightmap = FreeImage_GetWidth(g_curheightmap);
 	for(ymain = 0; ymain < FreeImage_GetHeight(g_curheightmap) ; ymain++) 
 	{
 		BYTE *pixelalbedo = (BYTE*)bitsalbedo;
-		for(xmain = 0; xmain < FreeImage_GetWidth(g_curheightmap); xmain++) 
+		BYTE *pixelheightmap = (BYTE*)bitsheightmap;
+		for(xmain = 0; xmain < widthheightmap; xmain++) 
 		{
 
 			curdiffx = g_curposx - xmain;
 			curdiffy = g_curposy - ymain;
-			pixelangle = atan2((double)curdiffx,(double)curdiffy);
+			pixelangle = atan2((double)curdiffy,(double)curdiffx);
 			
 			if (ABS(pixelangle-g_curangle) < (FOV/2.0f)) 
 			{
@@ -196,30 +204,36 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 				assert( curxoutput >= 0 && curxoutput <= SCREENSIZE && " probléme calcul de curxouput !");
 
 				//on récupére la valeur
-				FreeImage_GetPixelIndex(g_curheightmap,xmain,ymain,&curheight);
-
+				//FreeImage_GetPixelIndex(g_curheightmap,xmain,ymain,&curheight);
+				curheight = *pixelheightmap;
 				//FreeImage_GetPixelColor(g_curalbedo,xmain,ymain,&color);
 
 				curdist = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
 
-				for (int yout = curheight;yout >= 0;yout--)
+				BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdist / 15400)));
+				unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
+
+				for (int yout = (curheight - g_curposz);yout >= 0;yout--)
 				{					
 		
 					//il faut calculer la distance par rapport à la position aussi
-					if ((LastDist[curxoutput][yout] < curdist )  || LastDist[curxoutput][yout] == 0) 
+					if ((curdist < LastDist[curxoutput][yout])  || LastDist[curxoutput][yout] == 0) 
 					{
 						//FreeImage_SetPixelColor(output,curxoutput,yout,&color);
 						LastDist[curxoutput][yout] = curdist;
-						Outputforform[curxoutput + yout * SCREENSIZE] = pixelalbedo[FI_RGBA_BLUE]  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
+
+						Outputforform[curxoutput + yout * SCREENSIZE] = color;
 					}
 					else if (LastDist[curxoutput][yout] >= curdist) //sinon on peut sortir tt de suite
 						break;
 				}
 			}
 			pixelalbedo+=3;
+			pixelheightmap++;
 		}
 
 		bitsalbedo+= pitchalbedo;
+		bitsheightmap += pitchheightmap;
 
 	}
 

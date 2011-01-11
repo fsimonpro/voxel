@@ -273,6 +273,10 @@ private: System::Void OutputNameText_KeyDown( Object^ /*sender*/, System::Window
 		 ProcessImage::Move(1,0);
 	 else if (mykey == Keys::F)
 		 ProcessImage::Move(-1,0);
+	 else if (mykey == Keys::A)
+		 ProcessImage::Move(0,0,1);
+	 else if (mykey == Keys::Q)
+		 ProcessImage::Move(0,0,-1);
 	
 	 GenerateVoxelInForm();
 }

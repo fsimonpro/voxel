@@ -117,11 +117,12 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="E:\Voxel\include"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="2"
-				WarningLevel="3"
+				WarningLevel="0"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -138,7 +139,7 @@
 				AdditionalDependencies="FreeImage.lib $(NOINHERIT)"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\lib"
-				GenerateDebugInformation="true"
+				GenerateDebugInformation="false"
 				SubSystem="2"
 				EntryPointSymbol="main"
 				TargetMachine="1"

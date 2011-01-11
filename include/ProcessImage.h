@@ -34,6 +34,6 @@ namespace ProcessImage
 
 	void Turn(bool left);
 
-	void Move(int dirx,int diry);
+	void Move(int dirx,int diry,int dirz = 0);
 
 }
