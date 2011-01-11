@@ -28,6 +28,10 @@ namespace ProcessImage
 
 	string GetCurrentImportPath();
 
-	void ComputeVoxel();
+	void ComputeVoxel(int screenwidth,int screenheight);
+
+	void Turn(bool left);
+
+	void Move(int dirx,int diry);
 
 }

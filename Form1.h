@@ -150,6 +150,7 @@ namespace SpriteSetMaker {
 			this->OutputNameText->TabIndex = 9;
 			this->OutputNameText->Text = L"output.bmp";
 			this->OutputNameText->TextChanged += gcnew System::EventHandler(this, &Form1::OutputNameText_TextChanged);
+			this->OutputNameText->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &Form1::OutputNameText_KeyDown);
 			// 
 			// label3
 			// 
@@ -217,9 +218,9 @@ private: System::Void ButtonGenerate_Click(System::Object^  sender, System::Even
 
 			//if (outputpath != 0)
 
-			 ProcessImage::ComputeVoxel();
+			 ProcessImage::ComputeVoxel(250,250);
 
-			Bitmap^ image1 = gcnew Bitmap(200, 100);
+			Bitmap^ image1 = gcnew Bitmap(250, 250);
 			int x,y;
 			 // Graphics flagGraphics = Graphics.FromImage(flag);
 
@@ -235,8 +236,10 @@ private: System::Void ButtonGenerate_Click(System::Object^  sender, System::Even
 				 }
 			 }
 
-			this->pictureBoxDest->Image = image1;
-			this->label3->Text = String::Format("Pixel format: {0}", image1->PixelFormat );
+			//this->pictureBoxDest->Image = image1;
+			
+			 this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
+			 this->label3->Text = String::Format("Pixel format: {0}", image1->PixelFormat );
 
 		 }
 
@@ -245,6 +248,26 @@ private: System::Void OutputNameText_TextChanged(System::Object^  sender, System
 			MarshalString(this->OutputNameText->Text,s);
 			ProcessImage::SetName(s);
 		 }
+
+private: System::Void OutputNameText_KeyDown( Object^ /*sender*/, System::Windows::Forms::KeyEventArgs^ e)
+{
+	 Keys mykey = e->KeyCode;
+	 if (mykey == Keys::D)
+		 ProcessImage::Turn(false);
+	 else if (mykey == Keys::S)
+		 ProcessImage::Turn(true);
+	 else if (mykey == Keys::T)
+		 ProcessImage::Move(0,1);
+	 else if (mykey == Keys::G)
+		 ProcessImage::Move(0,-1);
+	 else if (mykey == Keys::H)
+		 ProcessImage::Move(1,0);
+	 else if (mykey == Keys::F)
+		 ProcessImage::Move(-1,0);
+
+	ProcessImage::ComputeVoxel(250,250);
+	 this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
+}
 
 private: System::Void InputFileButton_Click(System::Object^  sender, System::EventArgs^  e) {
 			  //Stream^ myStream;
@@ -295,4 +318,5 @@ private: System::Void saturationtext_TextChanged(System::Object^  sender, System
 		 }
 };
 }
+
 

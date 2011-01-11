@@ -13,6 +13,8 @@
 #include <list>
 #include <sstream>
 #include <string>
+#include <math.h>
+#include <assert.h>
 
 #define MAXHEIGHTBEFORECROP 0xFFFFFFFF
 
@@ -24,16 +26,21 @@ FIBITMAP* g_curheightmap;
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #define	MAX(_a,_b) ((_a) < (_b) ? (_b) : (_a))
 #define	BOUND(_val,_min,_max) (MAX(MIN((_val),(_max)),(_min)))
+#define ABS(x) ((x) < 0 ? - (x) : (x))
 
 string g_psddir = DEFAULTOUTPUTPATH;
 string g_psdname = DEFAULTOUTPUTNAME;
-int g_luminosity = 0;
-double g_constraste = 1;
-int g_saturation = 0;
-
 
 void ComputeHSVFromRGB(BYTE r,BYTE g, BYTE b, double &h,double &s, double &v);
 void ComputeRGBFromHSV(double h,double s, double v,BYTE &r,BYTE &g,BYTE &b);
+
+double g_curangle = 0;
+double g_curposx = 100;
+double g_curposy = 100;
+
+#define FOV 0.9
+
+#define SCREENSIZE 250
 
 string ConvertToString(int n)
 {	ostringstream o;
@@ -50,6 +57,22 @@ bool stringpred(const std::string& lhs, const std::string& rhs)
 void ProcessImage::SetImagesPaths(Paths paths)
 {
 	g_curpath = paths;
+}
+
+void ProcessImage::Turn(bool left)
+{
+	if (left)
+		g_curangle -= 0.1;
+	else
+		g_curangle +=0.1;
+}
+
+
+#define STEPMOVE  5
+void ProcessImage::Move(int dirx,int diry)
+{
+	g_curposy += diry*STEPMOVE;
+	g_curposx += dirx*STEPMOVE;
 }
 
 
@@ -128,10 +151,52 @@ void ProcessImage::SetName(string name)
 	g_psdname = name;
 }
 
-void ProcessImage::ComputeVoxel()
+void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
 {
+	unsigned int xmain,ymain;
+	double pixelangle;
+	BYTE curheight;
+
+	int curxoutput; 
 	if (!g_curheightmap) 
-		g_curheightmap = FreeImage_Load(FIF_GIF,"height.gif");
+		g_curheightmap = FreeImage_Load(FIF_TARGA,"height.tga");
+
+	FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
+	//premiére approche bourrine et naive on parcourt toute l'image des heights
+	for(ymain = 0; ymain < FreeImage_GetHeight(g_curheightmap) ; ymain++) 
+	{
+		for(xmain = 0; xmain < FreeImage_GetWidth(g_curheightmap); xmain++) 
+		{
+			pixelangle = atan2(g_curposx - xmain,g_curposy-ymain);
+			
+			if (ABS(pixelangle-g_curangle) < (FOV/2.0f)) 
+			{
+				//pixel à l'intérieur !
+				//on calcule le x sur l'image en sortie
+				curxoutput = (((pixelangle-g_curangle) + (FOV/2.0f)) * SCREENSIZE) / FOV;
+				assert( curxoutput >= 0 && curxoutput <= SCREENSIZE && " probléme calcul de curxouput !");
+
+				//on récupére la valeur
+				FreeImage_GetPixelIndex(g_curheightmap,xmain,ymain,&curheight);
+
+				for (int yout = curheight;yout >= 0;yout--)
+				{
+					RGBQUAD srccol;
+					FreeImage_GetPixelColor(output,curxoutput,yout,&srccol);
+					
+					//il faut calculer la distance par rapport à la position aussi
+					if (curheight > srccol.rgbBlue && srccol.rgbBlue == 0) 
+					{
+						RGBQUAD color = {curheight,curheight,curheight,curheight};
+						FreeImage_SetPixelColor(output,curxoutput,yout,&color);
+					}
+				}
+			}
+		}
+
+	}
+
+	FreeImage_Save(FIF_BMP,output,"E:\\Voxel\\test.bmp");
 }
 
 //charge l'image, appelle le process dessu et la sauvegarde
