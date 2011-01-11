@@ -196,11 +196,8 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 				curdist = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
 
 				for (int yout = curheight;yout >= 0;yout--)
-				{
-					
-					RGBQUAD srccol;
-					FreeImage_GetPixelColor(output,curxoutput,yout,&srccol);
-					
+				{					
+		
 					//il faut calculer la distance par rapport à la position aussi
 					if ((LastDist[curxoutput][yout] < curdist )  || LastDist[curxoutput][yout] == 0) 
 					{
