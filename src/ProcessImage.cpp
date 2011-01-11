@@ -69,7 +69,7 @@ void ProcessImage::Turn(bool left)
 }
 
 
-#define STEPMOVE  5
+#define STEPMOVE  20
 void ProcessImage::Move(int dirx,int diry)
 {
 	g_curposy += diry*STEPMOVE;
@@ -167,12 +167,20 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 	if (!g_curalbedo)
 		g_curalbedo = FreeImage_Load(FIF_TARGA,"albedo.tga");
 
+
+	FREE_IMAGE_TYPE image_type = FreeImage_GetImageType(g_curalbedo);
+
 	memset(&LastDist,0,SCREENSIZE*SCREENSIZE*sizeof(unsigned int));
 
-	FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
+	//FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
 	//premiére approche bourrine et naive on parcourt toute l'image des heights
+	
+	BYTE *bitsalbedo = (BYTE*)FreeImage_GetBits(g_curalbedo);
+	unsigned pitchalbedo = FreeImage_GetPitch(g_curalbedo);
+
 	for(ymain = 0; ymain < FreeImage_GetHeight(g_curheightmap) ; ymain++) 
 	{
+		BYTE *pixelalbedo = (BYTE*)bitsalbedo;
 		for(xmain = 0; xmain < FreeImage_GetWidth(g_curheightmap); xmain++) 
 		{
 
@@ -190,8 +198,7 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 				//on récupére la valeur
 				FreeImage_GetPixelIndex(g_curheightmap,xmain,ymain,&curheight);
 
-				RGBQUAD color; 
-				FreeImage_GetPixelColor(g_curalbedo,xmain,ymain,&color);
+				//FreeImage_GetPixelColor(g_curalbedo,xmain,ymain,&color);
 
 				curdist = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
 
@@ -203,13 +210,16 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 					{
 						//FreeImage_SetPixelColor(output,curxoutput,yout,&color);
 						LastDist[curxoutput][yout] = curdist;
-						Outputforform[curxoutput + yout * SCREENSIZE] = color.rgbBlue  | color.rgbGreen << 8 | color.rgbRed << 16 | 0xFF << 24 ;
+						Outputforform[curxoutput + yout * SCREENSIZE] = pixelalbedo[FI_RGBA_BLUE]  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
 					}
 					else if (LastDist[curxoutput][yout] >= curdist) //sinon on peut sortir tt de suite
 						break;
 				}
 			}
+			pixelalbedo+=3;
 		}
+
+		bitsalbedo+= pitchalbedo;
 
 	}
 
