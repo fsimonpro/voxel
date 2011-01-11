@@ -12,6 +12,8 @@ struct FIBITMAP;
 #define DEFAULTOUTPUTNAME "output.bmp"
 #define DEFAULTOUTPUTPATH "c:\\"
 
+#define SCREENSIZE 250
+
 namespace ProcessImage
 {
 	void SetImagesPaths(Paths paths);
@@ -28,7 +30,7 @@ namespace ProcessImage
 
 	string GetCurrentImportPath();
 
-	void ComputeVoxel(int screenwidth,int screenheight);
+	void ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform);
 
 	void Turn(bool left);
 

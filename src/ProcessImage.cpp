@@ -39,9 +39,9 @@ double g_curangle = -2.0;
 double g_curposx = 100;
 double g_curposy = 100;
 
-#define FOV 0.9
+#define FOV 0.7
 
-#define SCREENSIZE 250
+
 
 string ConvertToString(int n)
 {	ostringstream o;
@@ -152,9 +152,10 @@ void ProcessImage::SetName(string name)
 	g_psdname = name;
 }
 
-void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
+void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform)
 {
 	unsigned int xmain,ymain;
+	int curdiffx,curdiffy;
 	double pixelangle;
 	BYTE curheight;
 	unsigned int LastDist[SCREENSIZE][SCREENSIZE]; //buffer type zbuffer
@@ -174,7 +175,10 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
 	{
 		for(xmain = 0; xmain < FreeImage_GetWidth(g_curheightmap); xmain++) 
 		{
-			pixelangle = atan2(g_curposx - xmain,g_curposy-ymain);
+
+			curdiffx = g_curposx - xmain;
+			curdiffy = g_curposy - ymain;
+			pixelangle = atan2((double)curdiffx,(double)curdiffy);
 			
 			if (ABS(pixelangle-g_curangle) < (FOV/2.0f)) 
 			{
@@ -189,9 +193,11 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
 				RGBQUAD color; 
 				FreeImage_GetPixelColor(g_curalbedo,xmain,ymain,&color);
 
+				curdist = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
+
 				for (int yout = curheight;yout >= 0;yout--)
 				{
-					curdist = (g_curposx - xmain)*(g_curposx - xmain) + (g_curposy - ymain)*(g_curposy - ymain);
+					
 					RGBQUAD srccol;
 					FreeImage_GetPixelColor(output,curxoutput,yout,&srccol);
 					
@@ -200,6 +206,7 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
 					{
 						FreeImage_SetPixelColor(output,curxoutput,yout,&color);
 						LastDist[curxoutput][yout] = curdist;
+						Outputforform[curxoutput + yout * SCREENSIZE] = color.rgbBlue  | color.rgbGreen << 8 | color.rgbRed << 16 | 0xFF << 24 ;
 					}
 					else if (LastDist[curxoutput][yout] >= curdist) //sinon on peut sortir tt de suite
 						break;
@@ -210,7 +217,10 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
 	}
 
 	FreeImage_Save(FIF_BMP,output,"E:\\Voxel\\test.bmp");
+
 }
+
+
 
 //charge l'image, appelle le process dessu et la sauvegarde
 string ProcessImage::ComputeOutput()

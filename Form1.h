@@ -217,29 +217,8 @@ private: System::Void ButtonGenerate_Click(System::Object^  sender, System::Even
 			string outputpath = ProcessImage::ComputeOutput();*/
 
 			//if (outputpath != 0)
-
-			 ProcessImage::ComputeVoxel(250,250);
-
-			Bitmap^ image1 = gcnew Bitmap(250, 250);
-			int x,y;
-			 // Graphics flagGraphics = Graphics.FromImage(flag);
-
-
-			//todo penser à utiliser lockbits et unlockbits
-			 for ( x = 0; x < image1->Width; x++ )
-			 {
-				 for ( y = 0; y < image1->Height; y++ )
-				 {
-					 Color pixelColor = image1->GetPixel( x, y );
-					 Color newColor = Color::FromArgb( pixelColor.R, x,y );
-					 image1->SetPixel( x, y, newColor );
-				 }
-			 }
-
-			//this->pictureBoxDest->Image = image1;
-			
-			 this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
-			 this->label3->Text = String::Format("Pixel format: {0}", image1->PixelFormat );
+			GenerateVoxelInForm();
+	
 
 		 }
 
@@ -248,6 +227,36 @@ private: System::Void OutputNameText_TextChanged(System::Object^  sender, System
 			MarshalString(this->OutputNameText->Text,s);
 			ProcessImage::SetName(s);
 		 }
+
+private: System::Void GenerateVoxelInForm()
+{
+	unsigned int curdisplay[SCREENSIZE*SCREENSIZE];
+	memset(curdisplay,0xFF000000,SCREENSIZE*SCREENSIZE*sizeof(unsigned int));
+
+	ProcessImage::ComputeVoxel(SCREENSIZE,SCREENSIZE,curdisplay);
+
+	Bitmap^ image1 = gcnew Bitmap(SCREENSIZE, SCREENSIZE);
+	int x,y;
+	// Graphics flagGraphics = Graphics.FromImage(flag);
+	unsigned int curcol;
+
+	//todo penser à utiliser lockbits et unlockbits
+	for ( x = 0; x < image1->Width; x++ )
+	{
+		for ( y = 0; y < image1->Height; y++ )
+		{
+			//Color pixelColor = image1->GetPixel( x, y );
+			curcol = curdisplay[x + y*SCREENSIZE];
+			Color newColor = Color::FromArgb(curcol);
+			image1->SetPixel( x, image1->Height-y-1, newColor );
+		}
+	}
+
+	this->pictureBoxDest->Image = image1;
+
+	//this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
+	this->label3->Text = String::Format("Pixel format: {0}", image1->PixelFormat );
+}
 
 private: System::Void OutputNameText_KeyDown( Object^ /*sender*/, System::Windows::Forms::KeyEventArgs^ e)
 {
@@ -264,9 +273,8 @@ private: System::Void OutputNameText_KeyDown( Object^ /*sender*/, System::Window
 		 ProcessImage::Move(1,0);
 	 else if (mykey == Keys::F)
 		 ProcessImage::Move(-1,0);
-
-	ProcessImage::ComputeVoxel(250,250);
-	 this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
+	
+	 GenerateVoxelInForm();
 }
 
 private: System::Void InputFileButton_Click(System::Object^  sender, System::EventArgs^  e) {
