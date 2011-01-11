@@ -22,6 +22,7 @@ Paths g_curpath;
 
 FIBITMAP* g_curpictures;
 FIBITMAP* g_curheightmap;
+FIBITMAP* g_curalbedo;
 
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #define	MAX(_a,_b) ((_a) < (_b) ? (_b) : (_a))
@@ -34,7 +35,7 @@ string g_psdname = DEFAULTOUTPUTNAME;
 void ComputeHSVFromRGB(BYTE r,BYTE g, BYTE b, double &h,double &s, double &v);
 void ComputeRGBFromHSV(double h,double s, double v,BYTE &r,BYTE &g,BYTE &b);
 
-double g_curangle = 0;
+double g_curangle = -2.0;
 double g_curposx = 100;
 double g_curposy = 100;
 
@@ -156,10 +157,16 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
 	unsigned int xmain,ymain;
 	double pixelangle;
 	BYTE curheight;
+	unsigned int LastDist[SCREENSIZE][SCREENSIZE]; //buffer type zbuffer
+	unsigned int curdist;
 
 	int curxoutput; 
 	if (!g_curheightmap) 
 		g_curheightmap = FreeImage_Load(FIF_TARGA,"height.tga");
+	if (!g_curalbedo)
+		g_curalbedo = FreeImage_Load(FIF_TARGA,"albedo.tga");
+
+	memset(&LastDist,0,SCREENSIZE*SCREENSIZE*sizeof(unsigned int));
 
 	FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
 	//premiére approche bourrine et naive on parcourt toute l'image des heights
@@ -179,17 +186,23 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight)
 				//on récupére la valeur
 				FreeImage_GetPixelIndex(g_curheightmap,xmain,ymain,&curheight);
 
+				RGBQUAD color; 
+				FreeImage_GetPixelColor(g_curalbedo,xmain,ymain,&color);
+
 				for (int yout = curheight;yout >= 0;yout--)
 				{
+					curdist = (g_curposx - xmain)*(g_curposx - xmain) + (g_curposy - ymain)*(g_curposy - ymain);
 					RGBQUAD srccol;
 					FreeImage_GetPixelColor(output,curxoutput,yout,&srccol);
 					
 					//il faut calculer la distance par rapport à la position aussi
-					if (curheight > srccol.rgbBlue && srccol.rgbBlue == 0) 
+					if ((LastDist[curxoutput][yout] < curdist )  || LastDist[curxoutput][yout] == 0) 
 					{
-						RGBQUAD color = {curheight,curheight,curheight,curheight};
 						FreeImage_SetPixelColor(output,curxoutput,yout,&color);
+						LastDist[curxoutput][yout] = curdist;
 					}
+					else if (LastDist[curxoutput][yout] >= curdist) //sinon on peut sortir tt de suite
+						break;
 				}
 			}
 		}
