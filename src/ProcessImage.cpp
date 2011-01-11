@@ -201,7 +201,7 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 					//il faut calculer la distance par rapport à la position aussi
 					if ((LastDist[curxoutput][yout] < curdist )  || LastDist[curxoutput][yout] == 0) 
 					{
-						FreeImage_SetPixelColor(output,curxoutput,yout,&color);
+						//FreeImage_SetPixelColor(output,curxoutput,yout,&color);
 						LastDist[curxoutput][yout] = curdist;
 						Outputforform[curxoutput + yout * SCREENSIZE] = color.rgbBlue  | color.rgbGreen << 8 | color.rgbRed << 16 | 0xFF << 24 ;
 					}
@@ -213,7 +213,7 @@ void ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int
 
 	}
 
-	FreeImage_Save(FIF_BMP,output,"E:\\Voxel\\test.bmp");
+	//FreeImage_Save(FIF_BMP,output,"E:\\Voxel\\test.bmp");
 
 }
 
