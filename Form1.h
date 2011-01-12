@@ -81,6 +81,7 @@ namespace SpriteSetMaker {
 
 
 	private: System::Windows::Forms::PictureBox^  pictureBoxDest;
+	private: System::Windows::Forms::Label^  InfoDebug;
 
 
 
@@ -108,6 +109,7 @@ namespace SpriteSetMaker {
 			this->label3 = (gcnew System::Windows::Forms::Label());
 			this->ButtonGenerate = (gcnew System::Windows::Forms::Button());
 			this->pictureBoxDest = (gcnew System::Windows::Forms::PictureBox());
+			this->InfoDebug = (gcnew System::Windows::Forms::Label());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->pictureBoxDest))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -180,11 +182,21 @@ namespace SpriteSetMaker {
 			this->pictureBoxDest->TabIndex = 22;
 			this->pictureBoxDest->TabStop = false;
 			// 
+			// InfoDebug
+			// 
+			this->InfoDebug->AutoSize = true;
+			this->InfoDebug->Location = System::Drawing::Point(417, 90);
+			this->InfoDebug->Name = L"InfoDebug";
+			this->InfoDebug->Size = System::Drawing::Size(89, 13);
+			this->InfoDebug->TabIndex = 23;
+			this->InfoDebug->Text = L"Output File Name";
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(683, 542);
+			this->Controls->Add(this->InfoDebug);
 			this->Controls->Add(this->pictureBoxDest);
 			this->Controls->Add(this->ButtonGenerate);
 			this->Controls->Add(this->label3);
@@ -233,7 +245,10 @@ private: System::Void GenerateVoxelInForm()
 	unsigned int curdisplay[SCREENSIZE*SCREENSIZE];
 	memset(curdisplay,0xFF000000,SCREENSIZE*SCREENSIZE*sizeof(unsigned int));
 
-	ProcessImage::ComputeVoxel(SCREENSIZE,SCREENSIZE,curdisplay);
+	double length = ProcessImage::ComputeVoxel(SCREENSIZE,SCREENSIZE,curdisplay);
+
+	this->InfoDebug->Text = (gcnew System::Double(length))->ToString();
+
 
 	Bitmap^ image1 = gcnew Bitmap(SCREENSIZE, SCREENSIZE);
 	int x,y;

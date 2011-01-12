@@ -30,7 +30,7 @@ namespace ProcessImage
 
 	string GetCurrentImportPath();
 
-	void ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform);
+	double ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform);
 
 	void Turn(bool left);
 
