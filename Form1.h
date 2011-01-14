@@ -43,6 +43,8 @@ namespace SpriteSetMaker {
 			//
 			//TODO : ajoutez ici le code du constructeur
 			//
+			//on fait un premier rendu auto
+			GenerateVoxelInForm();
 		}
 
 	protected:
@@ -177,7 +179,7 @@ namespace SpriteSetMaker {
 			// 
 			this->pictureBoxDest->Location = System::Drawing::Point(49, 130);
 			this->pictureBoxDest->Name = L"pictureBoxDest";
-			this->pictureBoxDest->Size = System::Drawing::Size(622, 409);
+			this->pictureBoxDest->Size = System::Drawing::Size(500, 500);
 			this->pictureBoxDest->SizeMode = System::Windows::Forms::PictureBoxSizeMode::StretchImage;
 			this->pictureBoxDest->TabIndex = 22;
 			this->pictureBoxDest->TabStop = false;
@@ -195,7 +197,7 @@ namespace SpriteSetMaker {
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(683, 542);
+			this->ClientSize = System::Drawing::Size(732, 641);
 			this->Controls->Add(this->InfoDebug);
 			this->Controls->Add(this->pictureBoxDest);
 			this->Controls->Add(this->ButtonGenerate);
@@ -242,15 +244,15 @@ private: System::Void OutputNameText_TextChanged(System::Object^  sender, System
 
 private: System::Void GenerateVoxelInForm()
 {
-	unsigned int curdisplay[SCREENSIZE*SCREENSIZE];
-	memset(curdisplay,0xFF000000,SCREENSIZE*SCREENSIZE*sizeof(unsigned int));
+	unsigned int curdisplay[SCREENRESOLUTION*SCREENRESOLUTION];
+	memset(curdisplay,0xFF000000,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
-	double length = ProcessImage::ComputeVoxel(SCREENSIZE,SCREENSIZE,curdisplay);
+	double length = ProcessImage::ComputeVoxel(SCREENRESOLUTION,SCREENRESOLUTION,curdisplay);
 
 	this->InfoDebug->Text = (gcnew System::Double(length))->ToString();
 
 
-	Bitmap^ image1 = gcnew Bitmap(SCREENSIZE, SCREENSIZE);
+	Bitmap^ image1 = gcnew Bitmap(SCREENRESOLUTION, SCREENRESOLUTION);
 	int x,y;
 	// Graphics flagGraphics = Graphics.FromImage(flag);
 	unsigned int curcol;
@@ -261,7 +263,7 @@ private: System::Void GenerateVoxelInForm()
 		for ( y = 0; y < image1->Height; y++ )
 		{
 			//Color pixelColor = image1->GetPixel( x, y );
-			curcol = curdisplay[x + y*SCREENSIZE];
+			curcol = curdisplay[x + y*SCREENRESOLUTION];
 			Color newColor = Color::FromArgb(curcol);
 			image1->SetPixel( x, image1->Height-y-1, newColor );
 		}

@@ -12,7 +12,7 @@ struct FIBITMAP;
 #define DEFAULTOUTPUTNAME "output.bmp"
 #define DEFAULTOUTPUTPATH "c:\\"
 
-#define SCREENSIZE 250
+#define SCREENRESOLUTION 250
 
 namespace ProcessImage
 {

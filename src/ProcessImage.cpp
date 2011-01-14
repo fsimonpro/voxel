@@ -36,7 +36,7 @@ string g_psdname = DEFAULTOUTPUTNAME;
 void ComputeHSVFromRGB(BYTE r,BYTE g, BYTE b, double &h,double &s, double &v);
 void ComputeRGBFromHSV(double h,double s, double v,BYTE &r,BYTE &g,BYTE &b);
 
-double g_curangle = -2.0f;
+double g_curangle = -1.3f;
 unsigned g_curposx = 500;
 unsigned g_curposy = 500;
 unsigned g_curposz = 40;
@@ -44,6 +44,10 @@ unsigned g_curposz = 40;
 
 #define FOV 0.7f
 #define FOV_2 FOV/2.0f
+
+//TODO séparé flipdistance et distance focale ?
+#define FLIPDISTANCE 200
+#define SCREENSIZE 300
 
 
 
@@ -169,9 +173,11 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	int curdiffx,curdiffy;
 	double pixelangle;
 	BYTE curheight;
-	unsigned int LastDist[SCREENSIZE][SCREENSIZE]; //buffer type zbuffer
-	unsigned int curdist;
+	unsigned int LastDist[SCREENRESOLUTION][SCREENRESOLUTION]; //buffer type zbuffer
+	unsigned int curdistsquare;
 	unsigned int widthheightmap;
+	unsigned int heightonscreen;
+	double curdist;
 
 	int curxoutput; 
 	if (!g_curheightmap) 
@@ -181,7 +187,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 	time_t starttime = time(NULL);
 
-	memset(&LastDist,0,SCREENSIZE*SCREENSIZE*sizeof(unsigned int));
+	memset(&LastDist,0,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
 	//FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
 	//premiére approche bourrine et naive on parcourt toute l'image des heights
@@ -210,29 +216,36 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 			{
 				//pixel à l'intérieur !
 				//on calcule le x sur l'image en sortie
-				curxoutput = (((pixelangle-g_curangle) + (FOV_2)) * SCREENSIZE) / FOV;
-				assert( curxoutput >= 0 && curxoutput <= SCREENSIZE && " probléme calcul de curxouput !");
+				curxoutput = (((pixelangle-g_curangle) + (FOV_2)) * SCREENRESOLUTION) / FOV;
+				assert( curxoutput >= 0 && curxoutput <= SCREENRESOLUTION && " probléme calcul de curxouput !");
 
 				//on récupére la valeur
 				curheight = *pixelheightmap;
+				curdistsquare = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
+				curdist = sqrt((double)curdistsquare);
 
-				curdist = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
+				if (curdist > FLIPDISTANCE)
+				{
+					//on calcule la hauteur sur l'écran par thalés
+					heightonscreen = (((SCREENSIZE/2 - curheight ) * (curdist - FLIPDISTANCE)) / (curdist)) + curheight; 
 
-				BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdist / 15400)));
-				unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
+					BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdistsquare / 15400)));
+					unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
 
-				for (int yout = (curheight - g_curposz);yout >= 0;yout--)
-				{					
-		
-					//il faut calculer la distance par rapport à la position aussi
-					if ((curdist < LastDist[curxoutput][yout])  || LastDist[curxoutput][yout] == 0) 
-					{
-						LastDist[curxoutput][yout] = curdist;
-						Outputforform[curxoutput + yout * SCREENSIZE] = color;
+					for (unsigned int yout = heightonscreen;yout >= MAX(0 , heightonscreen-4);yout--)
+					{					
+
+						//il faut calculer la distance par rapport à la position aussi
+						if ((curdistsquare < LastDist[curxoutput][yout])  || LastDist[curxoutput][yout] == 0) 
+						{
+							LastDist[curxoutput][yout] = curdistsquare;
+							Outputforform[curxoutput + yout * SCREENRESOLUTION] = color;
+						}
+						else if (LastDist[curxoutput][yout] >= curdistsquare) //sinon on peut sortir tt de suite
+							break;
 					}
-					else if (LastDist[curxoutput][yout] >= curdist) //sinon on peut sortir tt de suite
-						break;
 				}
+
 			}
 			pixelalbedo+=3;
 			pixelheightmap++;
