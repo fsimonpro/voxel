@@ -167,6 +167,42 @@ void ProcessImage::SetName(string name)
 	g_psdname = name;
 }
 
+//à revoir
+unsigned int  CombineCol(unsigned int col1,unsigned int col2)
+{
+	unsigned int res;
+	BYTE blue = ( ((col1 & 0x000000FF)>>1) + ((col2 & 0x000000FF) >>1));
+	BYTE green = (((col1 & 0x0000FF00) >> 9) + ((col2 & 0x0000FF00) >> 9));
+	BYTE red = (((col1 & 0x00FF0000) >> 17) + ((col2 & 0x00FF0000) >> 17)) ;
+	res = blue  | green << 8 | red << 16  | 0xFF000000   ;
+	return res;
+
+}
+
+//remplit les eventuels "trous" dans l'image
+void PostProcessPicture( unsigned int * Outputforform)
+{
+	unsigned int xmain,ymain;
+	unsigned int leftcol,rightcol;
+	for(ymain = 0; ymain < SCREENRESOLUTION ; ymain++) 
+	{
+		for(xmain = 1; xmain < SCREENRESOLUTION-1; xmain++) 
+		{
+			if (Outputforform[xmain + ymain * SCREENRESOLUTION] ==0)
+			{
+				//on fait la moyenne des deux voisins
+				leftcol = Outputforform[xmain -1 + ymain * SCREENRESOLUTION];
+				rightcol = Outputforform[xmain +1 + ymain * SCREENRESOLUTION];
+				if (leftcol != 0 && rightcol != 0)
+					Outputforform[xmain + ymain * SCREENRESOLUTION] = CombineCol(leftcol,rightcol); //prob avec l'alpha ?
+			}
+		}
+	}
+}
+
+
+
+//TODO on passe le tableau entier en paramétre là ?
 double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform)
 {
 	unsigned int xmain,ymain;
@@ -184,6 +220,8 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 		g_curheightmap = FreeImage_Load(FIF_TARGA,"height.tga");
 	if (!g_curalbedo)
 		g_curalbedo = FreeImage_Load(FIF_TARGA,"albedo.tga");
+
+	assert( FreeImage_GetWidth(g_curheightmap) == FreeImage_GetWidth(g_curalbedo) && FreeImage_GetHeight(g_curheightmap) == FreeImage_GetHeight(g_curalbedo));
 
 	time_t starttime = time(NULL);
 
@@ -262,11 +300,15 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 	//FreeImage_Save(FIF_BMP,output,"E:\\Voxel\\test.bmp");
 
+	PostProcessPicture(Outputforform);
+
 	double totaltime = difftime(time(NULL),starttime);
 	return totaltime;
 	//cout << totaltime <<endl;
 
 }
+
+
 
 
 
