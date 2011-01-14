@@ -172,7 +172,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	unsigned int xmain,ymain;
 	int curdiffx,curdiffy;
 	double pixelangle;
-	BYTE curheight;
+	signed int curheight;
 	unsigned int LastDist[SCREENRESOLUTION][SCREENRESOLUTION]; //buffer type zbuffer
 	unsigned int curdistsquare;
 	unsigned int widthheightmap;
@@ -226,24 +226,28 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 				if (curdist > FLIPDISTANCE)
 				{
+					curheight = MAX(0,curheight + g_curposz);
 					//on calcule la hauteur sur l'écran par thalés
 					heightonscreen = (((SCREENSIZE/2 - curheight ) * (curdist - FLIPDISTANCE)) / (curdist)) + curheight; 
 
+					//rajout brume bleu
 					BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdistsquare / 15400)));
 					unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
 
-					for (unsigned int yout = heightonscreen;yout >= MAX(0 , heightonscreen-4);yout--)
-					{					
-
-						//il faut calculer la distance par rapport à la position aussi
-						if ((curdistsquare < LastDist[curxoutput][yout])  || LastDist[curxoutput][yout] == 0) 
+					if (heightonscreen > 4 && heightonscreen < SCREENRESOLUTION) //sécurité
+					{
+						for (unsigned int yout = heightonscreen;yout >= heightonscreen - 4 ;yout--)
 						{
-							LastDist[curxoutput][yout] = curdistsquare;
-							Outputforform[curxoutput + yout * SCREENRESOLUTION] = color;
+							//il faut calculer la distance par rapport à la position aussi
+							if ((curdistsquare < LastDist[curxoutput][yout])  || LastDist[curxoutput][yout] == 0) 
+							{
+								LastDist[curxoutput][yout] = curdistsquare;
+								Outputforform[curxoutput + yout * SCREENRESOLUTION] = color;
+							}
+							else if (LastDist[curxoutput][yout] >= curdistsquare) //sinon on peut sortir tt de suite
+								break;
 						}
-						else if (LastDist[curxoutput][yout] >= curdistsquare) //sinon on peut sortir tt de suite
-							break;
-					}
+					}	
 				}
 
 			}
