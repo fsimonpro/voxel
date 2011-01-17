@@ -84,6 +84,10 @@ namespace SpriteSetMaker {
 
 	private: System::Windows::Forms::PictureBox^  pictureBoxDest;
 	private: System::Windows::Forms::Label^  InfoDebug;
+	private: System::Windows::Forms::HScrollBar^  hScrollBar1;
+	private: System::Windows::Forms::HScrollBar^  hScrollBar2;
+	private: System::Windows::Forms::HScrollBar^  hScrollBar3;
+	private: System::Windows::Forms::Label^  labelfov;
 
 
 
@@ -112,6 +116,10 @@ namespace SpriteSetMaker {
 			this->ButtonGenerate = (gcnew System::Windows::Forms::Button());
 			this->pictureBoxDest = (gcnew System::Windows::Forms::PictureBox());
 			this->InfoDebug = (gcnew System::Windows::Forms::Label());
+			this->hScrollBar1 = (gcnew System::Windows::Forms::HScrollBar());
+			this->hScrollBar2 = (gcnew System::Windows::Forms::HScrollBar());
+			this->hScrollBar3 = (gcnew System::Windows::Forms::HScrollBar());
+			this->labelfov = (gcnew System::Windows::Forms::Label());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->pictureBoxDest))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -193,11 +201,49 @@ namespace SpriteSetMaker {
 			this->InfoDebug->TabIndex = 23;
 			this->InfoDebug->Text = L"Output File Name";
 			// 
+			// hScrollBar1
+			// 
+			this->hScrollBar1->Location = System::Drawing::Point(581, 271);
+			this->hScrollBar1->Maximum = 200;
+			this->hScrollBar1->Minimum = 10;
+			this->hScrollBar1->Name = L"hScrollBar1";
+			this->hScrollBar1->Size = System::Drawing::Size(469, 19);
+			this->hScrollBar1->TabIndex = 24;
+			this->hScrollBar1->Value = 70;
+			this->hScrollBar1->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBar1_Scroll);
+			// 
+			// hScrollBar2
+			// 
+			this->hScrollBar2->Location = System::Drawing::Point(581, 333);
+			this->hScrollBar2->Name = L"hScrollBar2";
+			this->hScrollBar2->Size = System::Drawing::Size(469, 19);
+			this->hScrollBar2->TabIndex = 25;
+			// 
+			// hScrollBar3
+			// 
+			this->hScrollBar3->Location = System::Drawing::Point(581, 398);
+			this->hScrollBar3->Name = L"hScrollBar3";
+			this->hScrollBar3->Size = System::Drawing::Size(469, 19);
+			this->hScrollBar3->TabIndex = 26;
+			// 
+			// labelfov
+			// 
+			this->labelfov->AutoSize = true;
+			this->labelfov->Location = System::Drawing::Point(816, 238);
+			this->labelfov->Name = L"labelfov";
+			this->labelfov->Size = System::Drawing::Size(28, 13);
+			this->labelfov->TabIndex = 27;
+			this->labelfov->Text = L"FOV";
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(732, 641);
+			this->ClientSize = System::Drawing::Size(1059, 641);
+			this->Controls->Add(this->labelfov);
+			this->Controls->Add(this->hScrollBar3);
+			this->Controls->Add(this->hScrollBar2);
+			this->Controls->Add(this->hScrollBar1);
 			this->Controls->Add(this->InfoDebug);
 			this->Controls->Add(this->pictureBoxDest);
 			this->Controls->Add(this->ButtonGenerate);
@@ -244,8 +290,9 @@ private: System::Void OutputNameText_TextChanged(System::Object^  sender, System
 
 private: System::Void GenerateVoxelInForm()
 {
-	unsigned int curdisplay[SCREENRESOLUTION*SCREENRESOLUTION];
-	memset(curdisplay,0xFF000000,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
+	unsigned int * curdisplay;
+	curdisplay =static_cast<unsigned int *> (malloc(SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int)));
+	//memset(curdisplay,0xFF000000,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
 	double length = ProcessImage::ComputeVoxel(SCREENRESOLUTION,SCREENRESOLUTION,curdisplay);
 
@@ -273,6 +320,7 @@ private: System::Void GenerateVoxelInForm()
 
 	//this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
 	this->label3->Text = String::Format("Pixel format: {0}", image1->PixelFormat );
+	
 }
 
 private: System::Void OutputNameText_KeyDown( Object^ /*sender*/, System::Windows::Forms::KeyEventArgs^ e)
@@ -344,6 +392,13 @@ private: System::Void InputFileButton_Click(System::Object^  sender, System::Eve
 
 private: System::Void saturationtext_TextChanged(System::Object^  sender, System::EventArgs^  e) {
 			 //this->saturationtext->Text;
+		 }
+private: System::Void hScrollBar1_Scroll(System::Object^  sender, System::Windows::Forms::ScrollEventArgs^  e) 
+		 {
+			 ProcessImage::SetFov(e->NewValue);
+			 GenerateVoxelInForm();		
+			 labelfov->Text = String::Format( "FOV {0}", e->NewValue );
+
 		 }
 };
 }

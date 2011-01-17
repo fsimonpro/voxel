@@ -42,8 +42,8 @@ unsigned g_curposy = 500;
 unsigned g_curposz = 40;
 
 
-#define FOV 0.7f
-#define FOV_2 FOV/2.0f
+float FOV = 0.4f;
+float FOV_2 = FOV/2.0f;
 
 //TODO séparé flipdistance et distance focale ?
 #define FLIPDISTANCE 200
@@ -69,6 +69,11 @@ bool stringpred(const std::string& lhs, const std::string& rhs)
 }
 
 
+void ProcessImage::SetFov(int nfov)
+{
+	FOV = (nfov/100.0f);
+	FOV_2 = FOV/2.0f;
+}
 void ProcessImage::SetImagesPaths(Paths paths)
 {
 	g_curpath = paths;
@@ -209,11 +214,15 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	int curdiffx,curdiffy;
 	double pixelangle;
 	signed int curheight;
-	unsigned int LastDist[SCREENRESOLUTION][SCREENRESOLUTION]; //buffer type zbuffer
+	//unsigned int LastDist[10][10]; //buffer type zbuffer
 	unsigned int curdistsquare;
 	unsigned int widthheightmap;
 	unsigned int heightonscreen;
 	double curdist;
+
+
+	unsigned int * LastDist;
+	LastDist = static_cast<unsigned int *> (malloc(SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int)));
 
 	int curxoutput; 
 	if (!g_curheightmap) 
@@ -225,7 +234,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 	time_t starttime = time(NULL);
 
-	memset(&LastDist,0,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
+	memset(LastDist,0,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
 	//FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
 	//premiére approche bourrine et naive on parcourt toute l'image des heights
@@ -277,12 +286,12 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 						for (unsigned int yout = heightonscreen;yout >= heightonscreen - 4 ;yout--)
 						{
 							//il faut calculer la distance par rapport à la position aussi
-							if ((curdistsquare < LastDist[curxoutput][yout])  || LastDist[curxoutput][yout] == 0) 
+							if ((curdistsquare < LastDist[curxoutput+ yout * SCREENRESOLUTION])  ||  LastDist[curxoutput+ yout * SCREENRESOLUTION] == 0) 
 							{
-								LastDist[curxoutput][yout] = curdistsquare;
+								 LastDist[curxoutput+ yout * SCREENRESOLUTION] = curdistsquare;
 								Outputforform[curxoutput + yout * SCREENRESOLUTION] = color;
 							}
-							else if (LastDist[curxoutput][yout] >= curdistsquare) //sinon on peut sortir tt de suite
+							else if ( LastDist[curxoutput+ yout * SCREENRESOLUTION] >= curdistsquare) //sinon on peut sortir tt de suite
 								break;
 						}
 					}	

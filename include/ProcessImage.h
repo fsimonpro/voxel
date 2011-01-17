@@ -36,4 +36,6 @@ namespace ProcessImage
 
 	void Move(int dirx,int diry,int dirz = 0);
 
+	void SetFov(int nfov);
+
 }
