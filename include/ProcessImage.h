@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef PROCESSIMAGE_H
+#define  PROCESSIMAGE_H
 
 #include <vector>
 
@@ -12,7 +13,6 @@ struct FIBITMAP;
 #define DEFAULTOUTPUTNAME "output.bmp"
 #define DEFAULTOUTPUTPATH "c:\\"
 
-#define SCREENRESOLUTION 250
 
 namespace ProcessImage
 {
@@ -38,4 +38,10 @@ namespace ProcessImage
 
 	void SetFov(int nfov);
 
+	void SetResolution(unsigned int res);
+
+	unsigned int  GetResolution();
+
 }
+
+#endif

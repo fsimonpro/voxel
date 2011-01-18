@@ -33,13 +33,10 @@ FIBITMAP* g_curalbedo;
 string g_psddir = DEFAULTOUTPUTPATH;
 string g_psdname = DEFAULTOUTPUTNAME;
 
-void ComputeHSVFromRGB(BYTE r,BYTE g, BYTE b, double &h,double &s, double &v);
-void ComputeRGBFromHSV(double h,double s, double v,BYTE &r,BYTE &g,BYTE &b);
-
 double g_curangle = -1.3f;
 unsigned g_curposx = 500;
 unsigned g_curposy = 500;
-unsigned g_curposz = 40;
+unsigned g_curposz = 16; //sur une base 100 !
 
 
 float FOV = 0.4f;
@@ -50,6 +47,8 @@ float FOV_2 = FOV/2.0f;
 #define SCREENSIZE 300
 
 
+
+unsigned int SCREENRESOLUTION = 250;
 
 string ConvertToString(int n)
 {	ostringstream o;
@@ -74,6 +73,18 @@ void ProcessImage::SetFov(int nfov)
 	FOV = (nfov/100.0f);
 	FOV_2 = FOV/2.0f;
 }
+
+void ProcessImage::SetResolution(unsigned int res)
+{
+	SCREENRESOLUTION = res;
+}
+
+unsigned int ProcessImage::GetResolution()
+{
+	return SCREENRESOLUTION;
+}
+
+
 void ProcessImage::SetImagesPaths(Paths paths)
 {
 	g_curpath = paths;
@@ -89,11 +100,12 @@ void ProcessImage::Turn(bool left)
 
 
 #define STEPMOVE  20
+#define STEPMOVEZ 8
 void ProcessImage::Move(int dirx,int diry,int dirz)
 {
 	g_curposy += diry*STEPMOVE;
 	g_curposx += dirx*STEPMOVE;
-	g_curposz += dirz*STEPMOVE;
+	g_curposz += dirz*STEPMOVEZ;
 }
 
 
@@ -102,6 +114,7 @@ void ProcessImage::SetExportDir(string dir)
 	g_psddir = dir;
 	g_psddir += "\\";
 }
+
 
 //construit l'image finale à partir de g_pictures
 FIBITMAP* ProcessImage::BuildImages(FIBITMAP* input)
@@ -219,6 +232,8 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	unsigned int widthheightmap;
 	unsigned int heightonscreen;
 	double curdist;
+	unsigned int realcurposz = (g_curposz* SCREENRESOLUTION) /100;  //en fonction de la résolution de sortie !
+	unsigned int realscreensize = (300 * SCREENRESOLUTION) / (2 * 250); //on divise par 2 par anticipation
 
 
 	unsigned int * LastDist;
@@ -273,9 +288,9 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 				if (curdist > FLIPDISTANCE)
 				{
-					curheight = MAX(0,curheight + g_curposz);
+					curheight = MAX(0,curheight + realcurposz);
 					//on calcule la hauteur sur l'écran par thalés
-					heightonscreen = (((SCREENSIZE/2 - curheight ) * (curdist - FLIPDISTANCE)) / (curdist)) + curheight; 
+					heightonscreen = (((realscreensize - curheight ) * (curdist - FLIPDISTANCE)) / (curdist)) + curheight; 
 
 					//rajout brume bleu
 					BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdistsquare / 15400)));

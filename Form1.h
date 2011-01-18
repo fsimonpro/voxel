@@ -85,9 +85,11 @@ namespace SpriteSetMaker {
 	private: System::Windows::Forms::PictureBox^  pictureBoxDest;
 	private: System::Windows::Forms::Label^  InfoDebug;
 	private: System::Windows::Forms::HScrollBar^  hScrollBar1;
-	private: System::Windows::Forms::HScrollBar^  hScrollBar2;
+	private: System::Windows::Forms::HScrollBar^  hScrollBarResolution;
+
 	private: System::Windows::Forms::HScrollBar^  hScrollBar3;
 	private: System::Windows::Forms::Label^  labelfov;
+	private: System::Windows::Forms::Label^  labelRes;
 
 
 
@@ -117,9 +119,10 @@ namespace SpriteSetMaker {
 			this->pictureBoxDest = (gcnew System::Windows::Forms::PictureBox());
 			this->InfoDebug = (gcnew System::Windows::Forms::Label());
 			this->hScrollBar1 = (gcnew System::Windows::Forms::HScrollBar());
-			this->hScrollBar2 = (gcnew System::Windows::Forms::HScrollBar());
+			this->hScrollBarResolution = (gcnew System::Windows::Forms::HScrollBar());
 			this->hScrollBar3 = (gcnew System::Windows::Forms::HScrollBar());
 			this->labelfov = (gcnew System::Windows::Forms::Label());
+			this->labelRes = (gcnew System::Windows::Forms::Label());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->pictureBoxDest))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -212,12 +215,18 @@ namespace SpriteSetMaker {
 			this->hScrollBar1->Value = 70;
 			this->hScrollBar1->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBar1_Scroll);
 			// 
-			// hScrollBar2
+			// hScrollBarResolution
 			// 
-			this->hScrollBar2->Location = System::Drawing::Point(581, 333);
-			this->hScrollBar2->Name = L"hScrollBar2";
-			this->hScrollBar2->Size = System::Drawing::Size(469, 19);
-			this->hScrollBar2->TabIndex = 25;
+			this->hScrollBarResolution->LargeChange = 50;
+			this->hScrollBarResolution->Location = System::Drawing::Point(581, 333);
+			this->hScrollBarResolution->Maximum = 500;
+			this->hScrollBarResolution->Minimum = 50;
+			this->hScrollBarResolution->Name = L"hScrollBarResolution";
+			this->hScrollBarResolution->Size = System::Drawing::Size(469, 19);
+			this->hScrollBarResolution->SmallChange = 10;
+			this->hScrollBarResolution->TabIndex = 25;
+			this->hScrollBarResolution->Value = 250;
+			this->hScrollBarResolution->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBarResolution_Scroll);
 			// 
 			// hScrollBar3
 			// 
@@ -235,14 +244,25 @@ namespace SpriteSetMaker {
 			this->labelfov->TabIndex = 27;
 			this->labelfov->Text = L"FOV";
 			// 
+			// labelRes
+			// 
+			this->labelRes->AutoSize = true;
+			this->labelRes->Location = System::Drawing::Point(800, 306);
+			this->labelRes->Name = L"labelRes";
+			this->labelRes->Size = System::Drawing::Size(57, 13);
+			this->labelRes->TabIndex = 28;
+			this->labelRes->Text = L"Resolution";
+			this->labelRes->TextAlign = System::Drawing::ContentAlignment::TopCenter;
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(1059, 641);
+			this->Controls->Add(this->labelRes);
 			this->Controls->Add(this->labelfov);
 			this->Controls->Add(this->hScrollBar3);
-			this->Controls->Add(this->hScrollBar2);
+			this->Controls->Add(this->hScrollBarResolution);
 			this->Controls->Add(this->hScrollBar1);
 			this->Controls->Add(this->InfoDebug);
 			this->Controls->Add(this->pictureBoxDest);
@@ -291,15 +311,16 @@ private: System::Void OutputNameText_TextChanged(System::Object^  sender, System
 private: System::Void GenerateVoxelInForm()
 {
 	unsigned int * curdisplay;
-	curdisplay =static_cast<unsigned int *> (malloc(SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int)));
+	unsigned int curres = ProcessImage::GetResolution();
+	curdisplay =static_cast<unsigned int *> (malloc(curres*curres*sizeof(unsigned int)));
 	//memset(curdisplay,0xFF000000,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
-	double length = ProcessImage::ComputeVoxel(SCREENRESOLUTION,SCREENRESOLUTION,curdisplay);
+	double length = ProcessImage::ComputeVoxel(curres,curres,curdisplay);
 
 	this->InfoDebug->Text = (gcnew System::Double(length))->ToString();
 
 
-	Bitmap^ image1 = gcnew Bitmap(SCREENRESOLUTION, SCREENRESOLUTION);
+	Bitmap^ image1 = gcnew Bitmap(curres, curres);
 	int x,y;
 	// Graphics flagGraphics = Graphics.FromImage(flag);
 	unsigned int curcol;
@@ -310,7 +331,7 @@ private: System::Void GenerateVoxelInForm()
 		for ( y = 0; y < image1->Height; y++ )
 		{
 			//Color pixelColor = image1->GetPixel( x, y );
-			curcol = curdisplay[x + y*SCREENRESOLUTION];
+			curcol = curdisplay[x + y*curres];
 			Color newColor = Color::FromArgb(curcol);
 			image1->SetPixel( x, image1->Height-y-1, newColor );
 		}
@@ -399,6 +420,12 @@ private: System::Void hScrollBar1_Scroll(System::Object^  sender, System::Window
 			 GenerateVoxelInForm();		
 			 labelfov->Text = String::Format( "FOV {0}", e->NewValue );
 
+		 }
+private: System::Void hScrollBarResolution_Scroll(System::Object^  sender, System::Windows::Forms::ScrollEventArgs^  e) 
+		 {
+			 ProcessImage::SetResolution(e->NewValue);
+			 GenerateVoxelInForm();		
+			 labelRes->Text = String::Format( "Resolution {0}", e->NewValue );
 		 }
 };
 }
