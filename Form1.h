@@ -86,10 +86,12 @@ namespace SpriteSetMaker {
 	private: System::Windows::Forms::Label^  InfoDebug;
 	private: System::Windows::Forms::HScrollBar^  hScrollBar1;
 	private: System::Windows::Forms::HScrollBar^  hScrollBarResolution;
+	private: System::Windows::Forms::HScrollBar^  hScrollBarFlipDistance;
 
-	private: System::Windows::Forms::HScrollBar^  hScrollBar3;
+
 	private: System::Windows::Forms::Label^  labelfov;
 	private: System::Windows::Forms::Label^  labelRes;
+	private: System::Windows::Forms::Label^  labelflipdistance;
 
 
 
@@ -120,9 +122,10 @@ namespace SpriteSetMaker {
 			this->InfoDebug = (gcnew System::Windows::Forms::Label());
 			this->hScrollBar1 = (gcnew System::Windows::Forms::HScrollBar());
 			this->hScrollBarResolution = (gcnew System::Windows::Forms::HScrollBar());
-			this->hScrollBar3 = (gcnew System::Windows::Forms::HScrollBar());
+			this->hScrollBarFlipDistance = (gcnew System::Windows::Forms::HScrollBar());
 			this->labelfov = (gcnew System::Windows::Forms::Label());
 			this->labelRes = (gcnew System::Windows::Forms::Label());
+			this->labelflipdistance = (gcnew System::Windows::Forms::Label());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->pictureBoxDest))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -228,17 +231,23 @@ namespace SpriteSetMaker {
 			this->hScrollBarResolution->Value = 250;
 			this->hScrollBarResolution->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBarResolution_Scroll);
 			// 
-			// hScrollBar3
+			// hScrollBarFlipDistance
 			// 
-			this->hScrollBar3->Location = System::Drawing::Point(581, 398);
-			this->hScrollBar3->Name = L"hScrollBar3";
-			this->hScrollBar3->Size = System::Drawing::Size(469, 19);
-			this->hScrollBar3->TabIndex = 26;
+			this->hScrollBarFlipDistance->LargeChange = 30;
+			this->hScrollBarFlipDistance->Location = System::Drawing::Point(581, 398);
+			this->hScrollBarFlipDistance->Maximum = 400;
+			this->hScrollBarFlipDistance->Minimum = 50;
+			this->hScrollBarFlipDistance->Name = L"hScrollBarFlipDistance";
+			this->hScrollBarFlipDistance->Size = System::Drawing::Size(469, 19);
+			this->hScrollBarFlipDistance->SmallChange = 10;
+			this->hScrollBarFlipDistance->TabIndex = 26;
+			this->hScrollBarFlipDistance->Value = 200;
+			this->hScrollBarFlipDistance->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBarFlipDistance_Scroll);
 			// 
 			// labelfov
 			// 
 			this->labelfov->AutoSize = true;
-			this->labelfov->Location = System::Drawing::Point(816, 238);
+			this->labelfov->Location = System::Drawing::Point(802, 236);
 			this->labelfov->Name = L"labelfov";
 			this->labelfov->Size = System::Drawing::Size(28, 13);
 			this->labelfov->TabIndex = 27;
@@ -247,21 +256,32 @@ namespace SpriteSetMaker {
 			// labelRes
 			// 
 			this->labelRes->AutoSize = true;
-			this->labelRes->Location = System::Drawing::Point(800, 306);
+			this->labelRes->Location = System::Drawing::Point(787, 307);
 			this->labelRes->Name = L"labelRes";
 			this->labelRes->Size = System::Drawing::Size(57, 13);
 			this->labelRes->TabIndex = 28;
 			this->labelRes->Text = L"Resolution";
 			this->labelRes->TextAlign = System::Drawing::ContentAlignment::TopCenter;
 			// 
+			// labelflipdistance
+			// 
+			this->labelflipdistance->AutoSize = true;
+			this->labelflipdistance->Location = System::Drawing::Point(787, 368);
+			this->labelflipdistance->Name = L"labelflipdistance";
+			this->labelflipdistance->Size = System::Drawing::Size(65, 13);
+			this->labelflipdistance->TabIndex = 29;
+			this->labelflipdistance->Text = L"FlipDistance";
+			this->labelflipdistance->TextAlign = System::Drawing::ContentAlignment::TopCenter;
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(1059, 641);
+			this->Controls->Add(this->labelflipdistance);
 			this->Controls->Add(this->labelRes);
 			this->Controls->Add(this->labelfov);
-			this->Controls->Add(this->hScrollBar3);
+			this->Controls->Add(this->hScrollBarFlipDistance);
 			this->Controls->Add(this->hScrollBarResolution);
 			this->Controls->Add(this->hScrollBar1);
 			this->Controls->Add(this->InfoDebug);
@@ -426,6 +446,12 @@ private: System::Void hScrollBarResolution_Scroll(System::Object^  sender, Syste
 			 ProcessImage::SetResolution(e->NewValue);
 			 GenerateVoxelInForm();		
 			 labelRes->Text = String::Format( "Resolution {0}", e->NewValue );
+		 }
+private: System::Void hScrollBarFlipDistance_Scroll(System::Object^  sender, System::Windows::Forms::ScrollEventArgs^  e) 
+		 {
+			 ProcessImage::SetFlipDistance(e->NewValue);
+			 GenerateVoxelInForm();		
+			 labelflipdistance->Text = String::Format( "FlipDistance {0}", e->NewValue );		 
 		 }
 };
 }

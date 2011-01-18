@@ -42,6 +42,8 @@ namespace ProcessImage
 
 	unsigned int  GetResolution();
 
+	void SetFlipDistance(unsigned int n);
+
 }
 
 #endif

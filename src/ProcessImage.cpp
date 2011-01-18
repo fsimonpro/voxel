@@ -43,8 +43,8 @@ float FOV = 0.4f;
 float FOV_2 = FOV/2.0f;
 
 //TODO séparé flipdistance et distance focale ?
-#define FLIPDISTANCE 200
-#define SCREENSIZE 300
+unsigned int FLIPDISTANCE  = 200;
+//#define SCREENSIZE 300
 
 
 
@@ -77,6 +77,11 @@ void ProcessImage::SetFov(int nfov)
 void ProcessImage::SetResolution(unsigned int res)
 {
 	SCREENRESOLUTION = res;
+}
+
+void ProcessImage::SetFlipDistance(unsigned int n)
+{
+	FLIPDISTANCE = n;
 }
 
 unsigned int ProcessImage::GetResolution()
@@ -233,7 +238,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	unsigned int heightonscreen;
 	double curdist;
 	unsigned int realcurposz = (g_curposz* SCREENRESOLUTION) /100;  //en fonction de la résolution de sortie !
-	unsigned int realscreensize = (300 * SCREENRESOLUTION) / (2 * 250); //on divise par 2 par anticipation
+	unsigned int realscreensize = (450 * SCREENRESOLUTION) / (2 * 250); //on divise par 2 par anticipation
 
 
 	unsigned int * LastDist;
@@ -282,11 +287,11 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 				assert( curxoutput >= 0 && curxoutput <= SCREENRESOLUTION && " probléme calcul de curxouput !");
 
 				//on récupére la valeur
-				curheight = *pixelheightmap;
+				curheight = (*pixelheightmap *SCREENRESOLUTION) >> 8; //il faut adapter à la résolution
 				curdistsquare = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
 				curdist = sqrt((double)curdistsquare);
 
-				if (curdist > FLIPDISTANCE)
+				if (curdist > FLIPDISTANCE) //attention la flipdistance dépend de la réso de la heightmap, pas de la sortie !
 				{
 					curheight = MAX(0,curheight + realcurposz);
 					//on calcule la hauteur sur l'écran par thalés
