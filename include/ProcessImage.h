@@ -27,8 +27,6 @@ namespace ProcessImage
 
 	void SetExportDir(string dir);
 
-	FIBITMAP* BuildImages(FIBITMAP* input);
-
 	void SetName(string name);
 
 	string ComputeOutput(); //calcul le fibitmap qu'il faut

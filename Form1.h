@@ -470,7 +470,7 @@ private: System::Void InputFileButton_Click(System::Object^  sender, System::Eve
 			 Paths mypaths; 
 			 OpenFileDialog^ openFileDialog1 = gcnew OpenFileDialog;
 
-			  openFileDialog1->InitialDirectory = "c:\\";
+			 openFileDialog1->InitialDirectory = Application::ExecutablePath;
 			  openFileDialog1->Filter = "Images Files |*.tga;*.bmp; *.png; *.gif";
 			  openFileDialog1->FilterIndex = 2;
 			  openFileDialog1->RestoreDirectory = true;
@@ -487,10 +487,11 @@ private: System::Void InputFileButton_Click(System::Object^  sender, System::Eve
 					  string s;
 					  MarshalString(openFileDialog1->FileNames[i],s);
 					  mypaths[i] = s;
-					  display = display + openFileDialog1->FileNames[i];
+					  display = display + ";" + openFileDialog1->FileNames[i];
 				  } 
 				   //ProcessImage::SetImagesPaths(mypaths);
 				   this->inputfiletext->Text = display;
+				   	GenerateVoxelInForm();
 			  }
 			  else
 			  {
@@ -504,6 +505,8 @@ private: System::Void InputFileButton_Click(System::Object^  sender, System::Eve
 				ProcessImage::SetExportDir(newpath);
 
 //				this->pictureBoxSrc->ImageLocation = display;
+
+
 
 		 }
 

@@ -95,6 +95,13 @@ unsigned int ProcessImage::GetResolution()
 void ProcessImage::SetImagesPaths(Paths paths)
 {
 	g_curpath = paths;
+	if (g_curpath.size() == 2)
+	{
+		//premiére image hiehgtmap
+		g_curheightmap = FreeImage_Load(FIF_TARGA,g_curpath[0].c_str());
+		g_curalbedo = FreeImage_Load(FIF_TARGA,g_curpath[1].c_str());
+	}
+
 }
 
 void ProcessImage::Turn(bool left)
@@ -124,9 +131,9 @@ void ProcessImage::SetExportDir(string dir)
 
 
 //construit l'image finale à partir de g_pictures
-FIBITMAP* ProcessImage::BuildImages(FIBITMAP* input)
+/*FIBITMAP* ProcessImage::BuildImages(FIBITMAP* input)
 {
-	/*
+	
 WORD xmain,ymain;
 	WORD height,width;
 	BYTE r,g,b;
@@ -179,9 +186,9 @@ WORD xmain,ymain;
 	}
 
 	return result;
-*/
+
 	return 0;
-}
+}*/
 
 
 
@@ -357,7 +364,7 @@ string ProcessImage::ComputeOutput()
 		format = FreeImage_GetFIFFromFilename(g_curpath[0].c_str());
 		img = FreeImage_Load(format,g_curpath[0].c_str());
 		//on construit le bmp en sortie
-		result = BuildImages(img);
+		//result = BuildImages(img);
 
 		FreeImage_Unload(img);	
 		string fullpath = g_psddir;
