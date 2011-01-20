@@ -409,6 +409,26 @@ private: System::Void GenerateVoxelInForm()
 	unsigned int curcol;
 
 	//todo penser à utiliser lockbits et unlockbits
+	Rectangle rect = Rectangle(0,0,image1->Width,image1->Height);
+	System::Drawing::Imaging::BitmapData^ bmpData = image1->LockBits( rect, System::Drawing::Imaging::ImageLockMode::ReadWrite, image1->PixelFormat );
+
+
+
+	IntPtr ptr = bmpData->Scan0;
+
+	unsigned int * realptr = (unsigned int*)ptr.ToPointer();
+	unsigned int *scrptr = curdisplay;
+
+	scrptr += image1->Width * image1->Height;
+	for (unsigned int ind = 0; ind < (image1->Width * image1->Height) ; ind++)
+	{
+		(*realptr) = (*scrptr);
+		realptr++;
+		scrptr--;
+	}
+
+	image1->UnlockBits(bmpData);
+	/*
 	for ( x = 0; x < image1->Width; x++ )
 	{
 		for ( y = 0; y < image1->Height; y++ )
@@ -418,7 +438,7 @@ private: System::Void GenerateVoxelInForm()
 			Color newColor = Color::FromArgb(curcol);
 			image1->SetPixel( x, image1->Height-y-1, newColor );
 		}
-	}
+	}*/
 
 	this->pictureBoxDest->Image = image1;
 
@@ -491,7 +511,7 @@ private: System::Void InputFileButton_Click(System::Object^  sender, System::Eve
 				  } 
 				   //ProcessImage::SetImagesPaths(mypaths);
 				   this->inputfiletext->Text = display;
-				   	GenerateVoxelInForm();
+
 			  }
 			  else
 			  {
@@ -499,6 +519,8 @@ private: System::Void InputFileButton_Click(System::Object^  sender, System::Eve
 			  }
 
 			  ProcessImage::SetImagesPaths(mypaths);
+
+			  	GenerateVoxelInForm();
 
 			  //on sort toujours l'image dans le même path
 			    string newpath = ProcessImage::GetCurrentImportPath();

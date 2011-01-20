@@ -46,6 +46,7 @@ float FOV_2 = FOV/2.0f;
 
 //TODO séparé flipdistance et distance focale ?
 unsigned int FLIPDISTANCE  = 200;
+signed int VOXELSIZE = 4;
 //#define SCREENSIZE 300
 
 
@@ -243,13 +244,13 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 {
 	unsigned int xmain,ymain;
 	int curdiffx,curdiffy;
-	double pixelangle;
+	float pixelangle;
 	signed int curheight;
 	//unsigned int LastDist[10][10]; //buffer type zbuffer
 	unsigned int curdistsquare;
 	unsigned int widthheightmap;
 	signed int heightonscreen;
-	double curdist;
+	float curdist;
 	signed int realcurposz = (g_curview.posz* SCREENRESOLUTION) /100;  //en fonction de la résolution de sortie !
 	signed int realscreensize = (450 * SCREENRESOLUTION) / (2 * 250); //on divise par 2 par anticipation
 
@@ -299,7 +300,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 				//on récupére la valeur
 				curheight = (*pixelheightmap *SCREENRESOLUTION) >> 8; //il faut adapter à la résolution
 				curdistsquare = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
-				curdist = sqrt((double)curdistsquare);
+				curdist = sqrt((float)curdistsquare);
 
 				if (curdist > FLIPDISTANCE) //attention la flipdistance dépend de la réso de la heightmap, pas de la sortie !
 				{
@@ -311,17 +312,18 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 					BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdistsquare / 15400)));
 					unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
 
-					if (heightonscreen > 4 && heightonscreen < SCREENRESOLUTION) //sécurité
+					if (heightonscreen > VOXELSIZE && heightonscreen < SCREENRESOLUTION) //sécurité
 					{
-						for (int yout = heightonscreen;yout >= heightonscreen - 4 ;yout--)
+						for (int yout = heightonscreen;yout >= heightonscreen - VOXELSIZE ;yout--)
 						{
+							unsigned int curind = curxoutput+ yout * SCREENRESOLUTION;
 							//il faut calculer la distance par rapport à la position aussi
-							if ((curdistsquare < LastDist[curxoutput+ yout * SCREENRESOLUTION])  ||  LastDist[curxoutput+ yout * SCREENRESOLUTION] == 0) 
+							if ((curdistsquare < LastDist[curind])  ||  LastDist[curind] == 0) 
 							{
-								 LastDist[curxoutput+ yout * SCREENRESOLUTION] = curdistsquare;
-								Outputforform[curxoutput + yout * SCREENRESOLUTION] = color;
+								 LastDist[curind] = curdistsquare;
+								Outputforform[curind] = color;
 							}
-							else if ( LastDist[curxoutput+ yout * SCREENRESOLUTION] >= curdistsquare) //sinon on peut sortir tt de suite
+							else if ( LastDist[curind] >= curdistsquare) //sinon on peut sortir tt de suite
 								break;
 						}
 					}	
