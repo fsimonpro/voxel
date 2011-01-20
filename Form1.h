@@ -4,6 +4,13 @@
 #include <string>
 #include <iostream>
 
+#include <sys/types.h>  
+#include <sys/timeb.h>
+#include <time.h>
+
+
+
+
 using namespace std;
 using namespace System;
 
@@ -92,6 +99,14 @@ namespace SpriteSetMaker {
 	private: System::Windows::Forms::Label^  labelfov;
 	private: System::Windows::Forms::Label^  labelRes;
 	private: System::Windows::Forms::Label^  labelflipdistance;
+	private: System::Windows::Forms::Label^  labelposx;
+	private: System::Windows::Forms::Label^  labelposy;
+	private: System::Windows::Forms::Label^  labelposz;
+	private: System::Windows::Forms::Label^  labelangle;
+
+
+
+
 
 
 
@@ -126,6 +141,10 @@ namespace SpriteSetMaker {
 			this->labelfov = (gcnew System::Windows::Forms::Label());
 			this->labelRes = (gcnew System::Windows::Forms::Label());
 			this->labelflipdistance = (gcnew System::Windows::Forms::Label());
+			this->labelposx = (gcnew System::Windows::Forms::Label());
+			this->labelposy = (gcnew System::Windows::Forms::Label());
+			this->labelposz = (gcnew System::Windows::Forms::Label());
+			this->labelangle = (gcnew System::Windows::Forms::Label());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->pictureBoxDest))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -273,11 +292,51 @@ namespace SpriteSetMaker {
 			this->labelflipdistance->Text = L"FlipDistance";
 			this->labelflipdistance->TextAlign = System::Drawing::ContentAlignment::TopCenter;
 			// 
+			// labelposx
+			// 
+			this->labelposx->AutoSize = true;
+			this->labelposx->Location = System::Drawing::Point(664, 32);
+			this->labelposx->Name = L"labelposx";
+			this->labelposx->Size = System::Drawing::Size(28, 13);
+			this->labelposx->TabIndex = 30;
+			this->labelposx->Text = L"FOV";
+			// 
+			// labelposy
+			// 
+			this->labelposy->AutoSize = true;
+			this->labelposy->Location = System::Drawing::Point(664, 55);
+			this->labelposy->Name = L"labelposy";
+			this->labelposy->Size = System::Drawing::Size(28, 13);
+			this->labelposy->TabIndex = 31;
+			this->labelposy->Text = L"FOV";
+			// 
+			// labelposz
+			// 
+			this->labelposz->AutoSize = true;
+			this->labelposz->Location = System::Drawing::Point(664, 82);
+			this->labelposz->Name = L"labelposz";
+			this->labelposz->Size = System::Drawing::Size(28, 13);
+			this->labelposz->TabIndex = 32;
+			this->labelposz->Text = L"FOV";
+			// 
+			// labelangle
+			// 
+			this->labelangle->AutoSize = true;
+			this->labelangle->Location = System::Drawing::Point(664, 105);
+			this->labelangle->Name = L"labelangle";
+			this->labelangle->Size = System::Drawing::Size(28, 13);
+			this->labelangle->TabIndex = 33;
+			this->labelangle->Text = L"FOV";
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(1059, 641);
+			this->Controls->Add(this->labelangle);
+			this->Controls->Add(this->labelposz);
+			this->Controls->Add(this->labelposy);
+			this->Controls->Add(this->labelposx);
 			this->Controls->Add(this->labelflipdistance);
 			this->Controls->Add(this->labelRes);
 			this->Controls->Add(this->labelfov);
@@ -330,6 +389,10 @@ private: System::Void OutputNameText_TextChanged(System::Object^  sender, System
 
 private: System::Void GenerateVoxelInForm()
 {
+	//Timer^ mytimer = gcnew Timer;
+	struct _timeb starttime;
+	struct _timeb endtime;
+	_ftime_s(&starttime);
 	unsigned int * curdisplay;
 	unsigned int curres = ProcessImage::GetResolution();
 	curdisplay =static_cast<unsigned int *> (malloc(curres*curres*sizeof(unsigned int)));
@@ -361,6 +424,21 @@ private: System::Void GenerateVoxelInForm()
 
 	//this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
 	this->label3->Text = String::Format("Pixel format: {0}", image1->PixelFormat );
+
+	const Curview* curview = ProcessImage::GetCurView();
+
+	labelposx->Text = String::Format( "X : {0}", curview->posx );
+	labelposy->Text = String::Format( "Y : {0}", curview->posy );
+	labelposz->Text = String::Format( "Z : {0}", curview->posz );
+	labelangle->Text = String::Format( "angle : {0}", curview->angle );
+
+	_ftime_s(&endtime);
+
+	double res = (endtime.time - starttime.time) * 1000 +  (endtime.millitm - starttime.millitm);
+
+	InfoDebug->Text = String::Format( "temps rendu : {0} ms", res );
+
+
 	
 }
 

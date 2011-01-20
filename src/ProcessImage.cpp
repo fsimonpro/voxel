@@ -15,7 +15,6 @@
 #include <string>
 #include <math.h>
 #include <assert.h>
-#include <time.h>
 
 #define MAXHEIGHTBEFORECROP 0xFFFFFFFF
 
@@ -33,10 +32,13 @@ FIBITMAP* g_curalbedo;
 string g_psddir = DEFAULTOUTPUTPATH;
 string g_psdname = DEFAULTOUTPUTNAME;
 
+/*
 double g_curangle = -1.3f;
 unsigned g_curposx = 500;
 unsigned g_curposy = 500;
-unsigned g_curposz = 16; //sur une base 100 !
+unsigned g_curposz = 16; //sur une base 100 !*/
+
+Curview g_curview = {500,500,16,-1.3f};
 
 
 float FOV = 0.4f;
@@ -48,7 +50,7 @@ unsigned int FLIPDISTANCE  = 200;
 
 
 
-unsigned int SCREENRESOLUTION = 250;
+signed int SCREENRESOLUTION = 250;
 
 string ConvertToString(int n)
 {	ostringstream o;
@@ -98,9 +100,9 @@ void ProcessImage::SetImagesPaths(Paths paths)
 void ProcessImage::Turn(bool left)
 {
 	if (left)
-		g_curangle -= 0.1;
+		g_curview.angle -= 0.1f;
 	else
-		g_curangle +=0.1;
+		g_curview.angle +=0.1f;
 }
 
 
@@ -108,9 +110,9 @@ void ProcessImage::Turn(bool left)
 #define STEPMOVEZ 8
 void ProcessImage::Move(int dirx,int diry,int dirz)
 {
-	g_curposy += diry*STEPMOVE;
-	g_curposx += dirx*STEPMOVE;
-	g_curposz += dirz*STEPMOVEZ;
+	g_curview.posy  += diry*STEPMOVE;
+	g_curview.posx  += dirx*STEPMOVE;
+	g_curview.posz  += dirz*STEPMOVEZ;
 }
 
 
@@ -205,7 +207,7 @@ unsigned int  CombineCol(unsigned int col1,unsigned int col2)
 //remplit les eventuels "trous" dans l'image
 void PostProcessPicture( unsigned int * Outputforform)
 {
-	unsigned int xmain,ymain;
+	int xmain,ymain;
 	unsigned int leftcol,rightcol;
 	for(ymain = 0; ymain < SCREENRESOLUTION ; ymain++) 
 	{
@@ -224,6 +226,10 @@ void PostProcessPicture( unsigned int * Outputforform)
 }
 
 
+const Curview* ProcessImage::GetCurView()
+{
+	return &g_curview;
+}
 
 //TODO on passe le tableau entier en paramétre là ?
 double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform)
@@ -235,10 +241,10 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	//unsigned int LastDist[10][10]; //buffer type zbuffer
 	unsigned int curdistsquare;
 	unsigned int widthheightmap;
-	unsigned int heightonscreen;
+	signed int heightonscreen;
 	double curdist;
-	unsigned int realcurposz = (g_curposz* SCREENRESOLUTION) /100;  //en fonction de la résolution de sortie !
-	unsigned int realscreensize = (450 * SCREENRESOLUTION) / (2 * 250); //on divise par 2 par anticipation
+	signed int realcurposz = (g_curview.posz* SCREENRESOLUTION) /100;  //en fonction de la résolution de sortie !
+	signed int realscreensize = (450 * SCREENRESOLUTION) / (2 * 250); //on divise par 2 par anticipation
 
 
 	unsigned int * LastDist;
@@ -251,9 +257,6 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 		g_curalbedo = FreeImage_Load(FIF_TARGA,"albedo.tga");
 
 	assert( FreeImage_GetWidth(g_curheightmap) == FreeImage_GetWidth(g_curalbedo) && FreeImage_GetHeight(g_curheightmap) == FreeImage_GetHeight(g_curalbedo));
-
-	time_t starttime = time(NULL);
-
 	memset(LastDist,0,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
 	//FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
@@ -272,18 +275,18 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	{
 		BYTE *pixelalbedo = (BYTE*)bitsalbedo;
 		BYTE *pixelheightmap = (BYTE*)bitsheightmap;
-		curdiffy = g_curposy - ymain;
+		curdiffy = g_curview.posy - ymain;
 
 		for(xmain = 0; xmain < widthheightmap; xmain++) 
 		{
-			curdiffx = g_curposx - xmain;
+			curdiffx = g_curview.posx - xmain;
 			pixelangle = atan2((double)curdiffy,(double)curdiffx);
 			
-			if (ABS(pixelangle-g_curangle) < (FOV_2)) 
+			if (ABS(pixelangle-g_curview.angle) < (FOV_2)) 
 			{
 				//pixel à l'intérieur !
 				//on calcule le x sur l'image en sortie
-				curxoutput = (((pixelangle-g_curangle) + (FOV_2)) * SCREENRESOLUTION) / FOV;
+				curxoutput = (((pixelangle - g_curview.angle) + (FOV_2)) * SCREENRESOLUTION) / FOV;
 				assert( curxoutput >= 0 && curxoutput <= SCREENRESOLUTION && " probléme calcul de curxouput !");
 
 				//on récupére la valeur
@@ -293,7 +296,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 				if (curdist > FLIPDISTANCE) //attention la flipdistance dépend de la réso de la heightmap, pas de la sortie !
 				{
-					curheight = MAX(0,curheight + realcurposz);
+					curheight = curheight + realcurposz;
 					//on calcule la hauteur sur l'écran par thalés
 					heightonscreen = (((realscreensize - curheight ) * (curdist - FLIPDISTANCE)) / (curdist)) + curheight; 
 
@@ -303,7 +306,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 					if (heightonscreen > 4 && heightonscreen < SCREENRESOLUTION) //sécurité
 					{
-						for (unsigned int yout = heightonscreen;yout >= heightonscreen - 4 ;yout--)
+						for (int yout = heightonscreen;yout >= heightonscreen - 4 ;yout--)
 						{
 							//il faut calculer la distance par rapport à la position aussi
 							if ((curdistsquare < LastDist[curxoutput+ yout * SCREENRESOLUTION])  ||  LastDist[curxoutput+ yout * SCREENRESOLUTION] == 0) 
@@ -331,8 +334,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 	PostProcessPicture(Outputforform);
 
-	double totaltime = difftime(time(NULL),starttime);
-	return totaltime;
+	return 0;
 	//cout << totaltime <<endl;
 
 }

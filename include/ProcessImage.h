@@ -13,6 +13,13 @@ struct FIBITMAP;
 #define DEFAULTOUTPUTNAME "output.bmp"
 #define DEFAULTOUTPUTPATH "c:\\"
 
+struct Curview
+{
+	signed int posx;
+	signed int posy;
+	signed int posz;
+	float angle;
+};
 
 namespace ProcessImage
 {
@@ -43,6 +50,8 @@ namespace ProcessImage
 	unsigned int  GetResolution();
 
 	void SetFlipDistance(unsigned int n);
+
+	const Curview* GetCurView();
 
 }
 
