@@ -422,9 +422,7 @@ private: System::Void GenerateVoxelInForm()
 	scrptr += image1->Width * image1->Height;
 	for (unsigned int ind = 0; ind < (image1->Width * image1->Height) ; ind++)
 	{
-		(*realptr) = (*scrptr);
-		realptr++;
-		scrptr--;
+		(*realptr++) = (*scrptr--);
 	}
 
 	image1->UnlockBits(bmpData);
