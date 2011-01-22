@@ -51,6 +51,8 @@ namespace SpriteSetMaker {
 			//TODO : ajoutez ici le code du constructeur
 			//
 			//on fait un premier rendu auto
+			m_bitmapdisplay = gcnew Bitmap(ProcessImage::GetResolution(), ProcessImage::GetResolution());
+			this->pictureBoxDest->Image = m_bitmapdisplay;
 			GenerateVoxelInForm();
 		}
 
@@ -106,7 +108,7 @@ namespace SpriteSetMaker {
 
 
 
-
+	private: Bitmap^ m_bitmapdisplay;
 
 
 
@@ -210,12 +212,14 @@ namespace SpriteSetMaker {
 			// 
 			// pictureBoxDest
 			// 
+			this->pictureBoxDest->BackgroundImageLayout = System::Windows::Forms::ImageLayout::None;
 			this->pictureBoxDest->Location = System::Drawing::Point(49, 130);
 			this->pictureBoxDest->Name = L"pictureBoxDest";
 			this->pictureBoxDest->Size = System::Drawing::Size(500, 500);
 			this->pictureBoxDest->SizeMode = System::Windows::Forms::PictureBoxSizeMode::StretchImage;
 			this->pictureBoxDest->TabIndex = 22;
 			this->pictureBoxDest->TabStop = false;
+			this->pictureBoxDest->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::pictureBoxDest_MouseMove);
 			// 
 			// InfoDebug
 			// 
@@ -390,58 +394,30 @@ private: System::Void OutputNameText_TextChanged(System::Object^  sender, System
 private: System::Void GenerateVoxelInForm()
 {
 	//Timer^ mytimer = gcnew Timer;
-	struct _timeb starttime;
-	struct _timeb endtime;
+	struct _timeb starttime,endtime,middletime;
+
 	_ftime_s(&starttime);
 	unsigned int * curdisplay;
 	unsigned int curres = ProcessImage::GetResolution();
-	curdisplay =static_cast<unsigned int *> (malloc(curres*curres*sizeof(unsigned int)));
-	//memset(curdisplay,0xFF000000,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
-	double length = ProcessImage::ComputeVoxel(curres,curres,curdisplay);
+	Rectangle rect = Rectangle(0,0,m_bitmapdisplay->Width,m_bitmapdisplay->Height);
 
-	this->InfoDebug->Text = (gcnew System::Double(length))->ToString();
+	//on lock les bits et on passe directement en paramétre le pointeur au compute voxel
+	System::Drawing::Imaging::BitmapData^ bmpData = m_bitmapdisplay->LockBits( rect, System::Drawing::Imaging::ImageLockMode::ReadWrite, m_bitmapdisplay->PixelFormat );
+	IntPtr ptr = bmpData->Scan0;
+	unsigned int * realptr = (unsigned int*)ptr.ToPointer();
 
+	double length = ProcessImage::ComputeVoxel(curres,curres,realptr);
 
-	Bitmap^ image1 = gcnew Bitmap(curres, curres);
 	int x,y;
-	// Graphics flagGraphics = Graphics.FromImage(flag);
+
 	unsigned int curcol;
 
-	//todo penser à utiliser lockbits et unlockbits
-	Rectangle rect = Rectangle(0,0,image1->Width,image1->Height);
-	System::Drawing::Imaging::BitmapData^ bmpData = image1->LockBits( rect, System::Drawing::Imaging::ImageLockMode::ReadWrite, image1->PixelFormat );
+	m_bitmapdisplay->UnlockBits(bmpData);
 
+	this->pictureBoxDest->Image = m_bitmapdisplay;
 
-
-	IntPtr ptr = bmpData->Scan0;
-
-	unsigned int * realptr = (unsigned int*)ptr.ToPointer();
-	unsigned int *scrptr = curdisplay;
-
-	scrptr += image1->Width * image1->Height;
-	for (unsigned int ind = 0; ind < (image1->Width * image1->Height) ; ind++)
-	{
-		(*realptr++) = (*scrptr--);
-	}
-
-	image1->UnlockBits(bmpData);
-	/*
-	for ( x = 0; x < image1->Width; x++ )
-	{
-		for ( y = 0; y < image1->Height; y++ )
-		{
-			//Color pixelColor = image1->GetPixel( x, y );
-			curcol = curdisplay[x + y*curres];
-			Color newColor = Color::FromArgb(curcol);
-			image1->SetPixel( x, image1->Height-y-1, newColor );
-		}
-	}*/
-
-	this->pictureBoxDest->Image = image1;
-
-	//this->pictureBoxDest->ImageLocation = "e:\\Voxel\\test.bmp";
-	this->label3->Text = String::Format("Pixel format: {0}", image1->PixelFormat );
+	this->label3->Text = String::Format("Pixel format: {0}", m_bitmapdisplay->PixelFormat );
 
 	const Curview* curview = ProcessImage::GetCurView();
 
@@ -451,10 +427,9 @@ private: System::Void GenerateVoxelInForm()
 	labelangle->Text = String::Format( "angle : {0}", curview->angle );
 
 	_ftime_s(&endtime);
-
 	double res = (endtime.time - starttime.time) * 1000 +  (endtime.millitm - starttime.millitm);
 
-	InfoDebug->Text = String::Format( "temps rendu : {0} ms", res );
+	InfoDebug->Text = String::Format( "temps rendu : {0} ms ", res );
 
 
 	
@@ -545,6 +520,9 @@ private: System::Void hScrollBar1_Scroll(System::Object^  sender, System::Window
 private: System::Void hScrollBarResolution_Scroll(System::Object^  sender, System::Windows::Forms::ScrollEventArgs^  e) 
 		 {
 			 ProcessImage::SetResolution(e->NewValue);
+			 //on met à jour le bitmap associé
+			 this->m_bitmapdisplay = gcnew Bitmap(ProcessImage::GetResolution(), ProcessImage::GetResolution());
+			this->pictureBoxDest->Image = m_bitmapdisplay;
 			 GenerateVoxelInForm();		
 			 labelRes->Text = String::Format( "Resolution {0}", e->NewValue );
 		 }
@@ -553,6 +531,10 @@ private: System::Void hScrollBarFlipDistance_Scroll(System::Object^  sender, Sys
 			 ProcessImage::SetFlipDistance(e->NewValue);
 			 GenerateVoxelInForm();		
 			 labelflipdistance->Text = String::Format( "FlipDistance {0}", e->NewValue );		 
+		 }
+private: System::Void pictureBoxDest_MouseMove(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) 
+		 {
+
 		 }
 };
 }

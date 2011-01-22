@@ -256,6 +256,8 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 
 	unsigned int * LastDist;
+	//TODO , utiliser le y buffer de largeur SCREENRESOLUTION avec le systéme de painter
+	//en fait on avance et on note que le plus "haut" pour un x donné
 	LastDist = static_cast<unsigned int *> (malloc(SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int)));
 
 	int curxoutput; 
@@ -266,10 +268,8 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 	assert( FreeImage_GetWidth(g_curheightmap) == FreeImage_GetWidth(g_curalbedo) && FreeImage_GetHeight(g_curheightmap) == FreeImage_GetHeight(g_curalbedo));
 	memset(LastDist,0,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
+	memset(Outputforform,0xFF77B5FE,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
 
-	//FIBITMAP* output = FreeImage_Allocate(SCREENSIZE,SCREENSIZE,24);
-	//premiére approche bourrine et naive on parcourt toute l'image des heights
-	
 	BYTE *bitsalbedo = (BYTE*)FreeImage_GetBits(g_curalbedo);
 	unsigned pitchalbedo = FreeImage_GetPitch(g_curalbedo);
 
@@ -316,7 +316,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 					{
 						for (int yout = heightonscreen;yout >= heightonscreen - VOXELSIZE ;yout--)
 						{
-							unsigned int curind = curxoutput+ yout * SCREENRESOLUTION;
+							unsigned int curind = (SCREENRESOLUTION-curxoutput-1)+ (SCREENRESOLUTION-yout-1) * SCREENRESOLUTION;
 							//il faut calculer la distance par rapport à la position aussi
 							if ((curdistsquare < LastDist[curind])  ||  LastDist[curind] == 0) 
 							{
@@ -339,12 +339,10 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 	}
 
-	//FreeImage_Save(FIF_BMP,output,"E:\\Voxel\\test.bmp");
 
 	PostProcessPicture(Outputforform);
 
 	return 0;
-	//cout << totaltime <<endl;
 
 }
 
