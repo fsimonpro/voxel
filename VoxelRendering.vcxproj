@@ -93,6 +93,13 @@
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="src\ProcessImage.cpp" />
+    <ClCompile Include="src\VoxelCore.cpp">
+      <CompileAsManaged>false</CompileAsManaged>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="VoxelRendering.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -103,6 +110,7 @@
       <FileType>CppForm</FileType>
     </ClInclude>
     <ClInclude Include="include\FreeImage.h" />
+    <ClInclude Include="src\VoxelCore.h" />
     <ClInclude Include="include\ProcessImage.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />

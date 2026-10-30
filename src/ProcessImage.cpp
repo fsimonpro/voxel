@@ -4,6 +4,7 @@
 #include "ProcessImage.h"
 
 #include "FreeImage.h"
+#include "VoxelCore.h"
 
 #include <iostream>
 #include <fstream>
@@ -24,8 +25,12 @@ string g_heightpath = "Samples/height.tga";
 string g_albedopath = "Samples/albedo.tga";
 
 FIBITMAP* g_curpictures;
-FIBITMAP* g_curheightmap;
-FIBITMAP* g_curalbedo;
+
+//heightmap + albedo fusionnes : un texel = hauteur (octet de poids fort) + couleur ; l'albedo est reechantillonne en uv sur la taille de la heightmap
+vector<unsigned int> g_texture;
+int g_mapwidth = 0;
+int g_mapheight = 0;
+int g_maxheight = 0;
 
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #define	MAX(_a,_b) ((_a) < (_b) ? (_b) : (_a))
@@ -112,24 +117,45 @@ FIBITMAP* LoadMap(const string& path, bool greyscale)
 	return converted;
 }
 
-//les deux images peuvent avoir des tailles differentes : l'albedo est echantillonne en coordonnees uv (0..1)
+//fusionne les deux images dans g_texture (voir plus haut) ; l'albedo est lu en coordonnees uv, les tailles peuvent differer
+static void BuildTexture(FIBITMAP* height, FIBITMAP* albedo, vector<unsigned int>& texture, int& width, int& heightpx, int& maxheight)
+{
+	width = FreeImage_GetWidth(height);
+	heightpx = FreeImage_GetHeight(height);
+	const int albedowidth = FreeImage_GetWidth(albedo);
+	const int albedoheight = FreeImage_GetHeight(albedo);
+	maxheight = 0;
+	texture.assign((size_t)width * heightpx, 0);
+	for (int y = 0; y < heightpx; y++)
+	{
+		const BYTE* heightrow = FreeImage_GetScanLine(height, y);
+		const BYTE* albedorow = FreeImage_GetScanLine(albedo, (int)((long long)y * albedoheight / heightpx));
+		unsigned int* dest = &texture[(size_t)y * width];
+		for (int x = 0; x < width; x++)
+		{
+			const BYTE* pixel = albedorow + ((long long)x * albedowidth / width) * 3;
+			unsigned int rgb = pixel[FI_RGBA_BLUE] | pixel[FI_RGBA_GREEN] << 8 | pixel[FI_RGBA_RED] << 16;
+			dest[x] = rgb | (unsigned int)heightrow[x] << 24;
+			if (heightrow[x] > maxheight) maxheight = heightrow[x];
+		}
+	}
+}
+
 bool ProcessImage::SetMapPaths(string heightpath, string albedopath)
 {
 	FIBITMAP* newheight = LoadMap(heightpath,true);
 	FIBITMAP* newalbedo = LoadMap(albedopath,false);
-	if (!newheight || !newalbedo)
+	bool ok = newheight && newalbedo;
+	if (ok)
 	{
-		if (newheight) FreeImage_Unload(newheight);
-		if (newalbedo) FreeImage_Unload(newalbedo);
-		return false;
+		BuildTexture(newheight, newalbedo, g_texture, g_mapwidth, g_mapheight, g_maxheight);
+		g_heightpath = heightpath;
+		g_albedopath = albedopath;
 	}
-	if (g_curheightmap) FreeImage_Unload(g_curheightmap);
-	if (g_curalbedo) FreeImage_Unload(g_curalbedo);
-	g_curheightmap = newheight;
-	g_curalbedo = newalbedo;
-	g_heightpath = heightpath;
-	g_albedopath = albedopath;
-	return true;
+	//les images FreeImage ne servent plus une fois la texture construite
+	if (newheight) FreeImage_Unload(newheight);
+	if (newalbedo) FreeImage_Unload(newalbedo);
+	return ok;
 }
 
 string ProcessImage::GetHeightmapPath()
@@ -146,12 +172,7 @@ void ProcessImage::SetImagesPaths(Paths paths)
 {
 	g_curpath = paths;
 	if (g_curpath.size() == 2)
-	{
-		//premiére image hiehgtmap
-		g_curheightmap = FreeImage_Load(FIF_TARGA,g_curpath[0].c_str());
-		g_curalbedo = FreeImage_Load(FIF_TARGA,g_curpath[1].c_str());
-	}
-
+		SetMapPaths(g_curpath[0], g_curpath[1]);
 }
 
 void ProcessImage::Turn(bool left)
@@ -271,91 +292,27 @@ const Curview* ProcessImage::GetCurView()
 	return &g_curview;
 }
 
-//projection inverse : pour chaque colonne de l'ecran on lance un rayon dans la heightmap
-//et on remplit tous les pixels de la colonne (painter front-to-back), il n'y a donc plus de trous
+//le rendu lui-meme est dans VoxelCore.cpp (code natif, multi-thread) ; ici on ne fait que lui passer la texture et la vue
 double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform)
 {
-	const int res = SCREENRESOLUTION;
-	signed int realcurposz = (g_curview.posz* res) /100;  //en fonction de la resolution de sortie !
-	signed int realscreensize = (450 * res) / (2 * 250); //on divise par 2 par anticipation
+	if (g_texture.empty())
+		SetMapPaths(g_heightpath, g_albedopath); //images par defaut
 
-	if (!g_curheightmap) 
-		g_curheightmap = LoadMap(g_heightpath,true);
-	if (!g_curalbedo)
-		g_curalbedo = LoadMap(g_albedopath,false);
-
-	//ciel : degrade bleu, plus fonce en haut, clair vers l'horizon
-	for (int row = 0; row < res; row++)
-	{
-		float t = (float)row / (res - 1); //0 en haut, 1 en bas
-		BYTE r = (BYTE)(40 + t * (170 - 40));
-		BYTE g = (BYTE)(100 + t * (210 - 100));
-		BYTE b = (BYTE)(215 + t * (250 - 215));
-		unsigned int skycolor = b | g << 8 | r << 16 | 0xFF << 24;
-		for (int col = 0; col < res; col++)
-			Outputforform[col + row * res] = skycolor;
-	}
-
-	BYTE *bitsalbedo = (BYTE*)FreeImage_GetBits(g_curalbedo);
-	unsigned pitchalbedo = FreeImage_GetPitch(g_curalbedo);
-
-	BYTE *bitsheightmap = (BYTE*)FreeImage_GetBits(g_curheightmap);
-	unsigned pitchheightmap = FreeImage_GetPitch(g_curheightmap);
-
-	const int widthheightmap = FreeImage_GetWidth(g_curheightmap);
-	const int heightheightmap = FreeImage_GetHeight(g_curheightmap);
-	const int widthalbedo = FreeImage_GetWidth(g_curalbedo);
-	const int heightalbedo = FreeImage_GetHeight(g_curalbedo);
-	//farclip : distance jusqu'au coin de la carte le plus eloigne de la camera (la camera peut etre hors carte)
-	const float farx = MAX(ABS((float)g_curview.posx), ABS((float)(g_curview.posx - widthheightmap)));
-	const float fary = MAX(ABS((float)g_curview.posy), ABS((float)(g_curview.posy - heightheightmap)));
-	const float maxdist = sqrt(farx * farx + fary * fary);
-
-	for (int col = 0; col < res; col++)
-	{
-		//meme mapping angle/colonne que l'ancienne projection (avec le miroir en sortie)
-		int curxoutput = res - 1 - col;
-		float rayangle = g_curview.angle - FOV_2 + (curxoutput * FOV) / res;
-		float cosa = cos(rayangle);
-		float sina = sin(rayangle);
-
-		int maxy = -1; //plus haut pixel deja rempli de cette colonne
-
-		for (float dist = 1.0f; dist < maxdist && maxy < res - 1; dist += 1.0f)
-		{
-			float fx = g_curview.posx - dist * cosa;
-			float fy = g_curview.posy - dist * sina;
-			if (fx < 0 || fy < 0 || fx >= widthheightmap || fy >= heightheightmap)
-				continue;
-			int x = (int)fx;
-			int y = (int)fy;
-
-			BYTE *pixelheightmap = bitsheightmap + y * pitchheightmap + x;
-			//meme point en uv dans l'albedo
-			int xalbedo = BOUND((int)(fx * widthalbedo / widthheightmap), 0, widthalbedo - 1);
-			int yalbedo = BOUND((int)(fy * heightalbedo / heightheightmap), 0, heightalbedo - 1);
-			BYTE *pixelalbedo = bitsalbedo + yalbedo * pitchalbedo + xalbedo * 3;
-
-			signed int curheight = ((*pixelheightmap * res) >> 8) + realcurposz;
-			//on calcule la hauteur sur l'ecran par thales
-			int heightonscreen = (int)((((realscreensize - curheight) * (dist - FLIPDISTANCE)) / dist) + curheight);
-			heightonscreen = BOUND(heightonscreen, 0, res - 1);
-			if (heightonscreen <= maxy)
-				continue; //masque par un point plus proche
-
-			unsigned int curdistsquare = (unsigned int)(dist * dist);
-			//rajout brume bleu
-			BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdistsquare / 15400)));
-			unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
-
-			for (int yout = maxy + 1; yout <= heightonscreen; yout++)
-				Outputforform[col + (res - yout - 1) * res] = color;
-			maxy = heightonscreen;
-		}
-	}
+	VoxelParams params;
+	params.texture = g_texture.empty() ? NULL : &g_texture[0];
+	params.mapwidth = g_mapwidth;
+	params.mapheight = g_mapheight;
+	params.maxheight = g_maxheight;
+	params.view.posx = g_curview.posx;
+	params.view.posy = g_curview.posy;
+	params.view.posz = g_curview.posz;
+	params.view.angle = g_curview.angle;
+	params.fov = FOV;
+	params.flipdistance = (int)FLIPDISTANCE;
+	params.resolution = SCREENRESOLUTION;
+	RenderVoxel(params, Outputforform);
 
 	return 0;
-
 }
 
 
