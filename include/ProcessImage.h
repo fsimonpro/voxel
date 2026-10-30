@@ -42,6 +42,8 @@ namespace ProcessImage
 
 	void Move(int dirx,int diry,int dirz = 0);
 
+	void SetView(int x,int y,int z,float angle);
+
 	void SetFov(int nfov);
 
 	void SetResolution(unsigned int res);

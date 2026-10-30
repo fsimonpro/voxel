@@ -53,6 +53,7 @@ namespace VoxelRendering {
 			//on fait un premier rendu auto
 			m_bitmapdisplay = gcnew Bitmap(ProcessImage::GetResolution(), ProcessImage::GetResolution());
 			this->pictureBoxDest->Image = m_bitmapdisplay;
+			SetupExtraUI();
 			GenerateVoxelInForm();
 		}
 
@@ -109,6 +110,12 @@ namespace VoxelRendering {
 
 
 	private: Bitmap^ m_bitmapdisplay;
+	private: System::Windows::Forms::CheckBox^  checkRealTime;
+	private: System::Windows::Forms::NumericUpDown^  numX;
+	private: System::Windows::Forms::NumericUpDown^  numY;
+	private: System::Windows::Forms::NumericUpDown^  numZ;
+	private: System::Windows::Forms::NumericUpDown^  numAngle;
+	private: bool m_updatingui;
 
 
 
@@ -367,6 +374,141 @@ namespace VoxelRendering {
 			 }
 	private: System::Void label4_Click(System::Object^  sender, System::EventArgs^  e) {
 			 }
+private: System::Windows::Forms::NumericUpDown^ MakeNumeric(int decimals, double inc, double mn, double mx)
+		 {
+			 NumericUpDown^ n = gcnew NumericUpDown();
+			 n->DecimalPlaces = decimals;
+			 n->Increment = System::Decimal(inc);
+			 n->Minimum = System::Decimal(mn);
+			 n->Maximum = System::Decimal(mx);
+			 n->ValueChanged += gcnew System::EventHandler(this, &Form1::ViewValue_Changed);
+			 return n;
+		 }
+
+private: System::Void SetupExtraUI()
+		 {
+			 m_updatingui = false;
+
+			 checkRealTime = gcnew CheckBox();
+			 checkRealTime->Text = L"Generate real time";
+			 checkRealTime->AutoSize = true;
+			 checkRealTime->Checked = true;
+			 checkRealTime->CheckedChanged += gcnew System::EventHandler(this, &Form1::checkRealTime_CheckedChanged);
+
+			 numX = MakeNumeric(0, 10, -100000, 100000);
+			 numY = MakeNumeric(0, 10, -100000, 100000);
+			 numZ = MakeNumeric(0, 4, -10000, 10000);
+			 numAngle = MakeNumeric(2, 0.1, -100, 100);
+
+			 this->Controls->Add(checkRealTime);
+			 this->Controls->Add(numX);
+			 this->Controls->Add(numY);
+			 this->Controls->Add(numZ);
+			 this->Controls->Add(numAngle);
+
+			 //les labels deviennent de simples legendes
+			 labelposx->Text = L"X";
+			 labelposy->Text = L"Y";
+			 labelposz->Text = L"Z";
+			 labelangle->Text = L"Angle";
+			 labelfov->Text = String::Format( "FOV {0}", hScrollBar1->Value );
+			 labelRes->Text = String::Format( "Resolution {0}", hScrollBarResolution->Value );
+			 labelflipdistance->Text = String::Format( "FlipDistance {0}", hScrollBarFlipDistance->Value );
+
+			 labelfov->AutoSize = false;
+			 labelRes->AutoSize = false;
+			 labelflipdistance->AutoSize = false;
+			 labelfov->TextAlign = ContentAlignment::TopCenter;
+			 labelRes->TextAlign = ContentAlignment::TopCenter;
+			 labelflipdistance->TextAlign = ContentAlignment::TopCenter;
+
+			 this->MinimumSize = System::Drawing::Size(640, 480);
+			 this->Resize += gcnew System::EventHandler(this, &Form1::Form1_Resize);
+			 ApplyLayout();
+		 }
+
+private: System::Void ApplyLayout()
+		 {
+			 const int m = 12;
+			 const int top = 130;
+			 int cw = this->ClientSize.Width;
+			 int ch = this->ClientSize.Height;
+
+			 //zone image : carree, a gauche
+			 int side = Math::Min((int)(cw * 0.55) - m, ch - top - m);
+			 if (side < 150) side = 150;
+			 pictureBoxDest->SetBounds(m, top, side, side);
+
+			 label1->Location = System::Drawing::Point(m, 8);
+			 inputfiletext->SetBounds(m, 24, Math::Max(100, side - 40), 20);
+			 InputFileButton->SetBounds(m + side - 32, 23, 32, 22);
+
+			 label3->Location = System::Drawing::Point(m, 60);
+			 OutputNameText->SetBounds(m, 76, 154, 20);
+			 ButtonGenerate->SetBounds(m + 170, 68, 116, 34);
+			 InfoDebug->Location = System::Drawing::Point(m + 300, 78);
+
+			 //panneau de droite
+			 int px = m + side + 20;
+			 int pw = Math::Max(160, cw - px - m);
+
+			 checkRealTime->Location = System::Drawing::Point(px, 24);
+
+			 int cell = pw / 4;
+			 cli::array<Label^>^ labs = { labelposx, labelposy, labelposz, labelangle };
+			 cli::array<NumericUpDown^>^ nums = { numX, numY, numZ, numAngle };
+			 for (int i = 0; i < 4; i++)
+			 {
+				 labs[i]->Location = System::Drawing::Point(px + i * cell, 62);
+				 nums[i]->SetBounds(px + i * cell, 78, cell - 8, 20);
+			 }
+
+			 labelfov->SetBounds(px, 140, pw, 16);
+			 hScrollBar1->SetBounds(px, 160, pw, 19);
+			 labelRes->SetBounds(px, 200, pw, 16);
+			 hScrollBarResolution->SetBounds(px, 220, pw, 19);
+			 labelflipdistance->SetBounds(px, 260, pw, 16);
+			 hScrollBarFlipDistance->SetBounds(px, 280, pw, 19);
+		 }
+
+private: System::Void Form1_Resize(System::Object^  sender, System::EventArgs^  e)
+		 {
+			 ApplyLayout();
+		 }
+
+//rend si le mode temps reel est actif
+private: System::Void RenderIfRealTime()
+		 {
+			 if (checkRealTime->Checked)
+				 GenerateVoxelInForm();
+		 }
+
+private: System::Void checkRealTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e)
+		 {
+			 ButtonGenerate->Visible = !checkRealTime->Checked;
+			 if (checkRealTime->Checked)
+				 GenerateVoxelInForm();
+		 }
+
+private: System::Void ViewValue_Changed(System::Object^  sender, System::EventArgs^  e)
+		 {
+			 if (m_updatingui)
+				 return;
+			 ProcessImage::SetView( (int)numX->Value, (int)numY->Value, (int)numZ->Value, (float)numAngle->Value );
+			 RenderIfRealTime();
+		 }
+
+private: System::Void SyncViewControls()
+		 {
+			 const Curview* curview = ProcessImage::GetCurView();
+			 m_updatingui = true;
+			 numX->Value = Math::Max(numX->Minimum, Math::Min(numX->Maximum, System::Decimal(curview->posx)));
+			 numY->Value = Math::Max(numY->Minimum, Math::Min(numY->Maximum, System::Decimal(curview->posy)));
+			 numZ->Value = Math::Max(numZ->Minimum, Math::Min(numZ->Maximum, System::Decimal(curview->posz)));
+			 numAngle->Value = Math::Max(numAngle->Minimum, Math::Min(numAngle->Maximum, System::Decimal(curview->angle)));
+			 m_updatingui = false;
+		 }
+
 private: System::Void ButtonGenerate_Click(System::Object^  sender, System::EventArgs^  e) 
 		 {
 			 //on récupére les valeurs
@@ -421,10 +563,7 @@ private: System::Void GenerateVoxelInForm()
 
 	const Curview* curview = ProcessImage::GetCurView();
 
-	labelposx->Text = String::Format( "X : {0}", curview->posx );
-	labelposy->Text = String::Format( "Y : {0}", curview->posy );
-	labelposz->Text = String::Format( "Z : {0}", curview->posz );
-	labelangle->Text = String::Format( "angle : {0}", curview->angle );
+	SyncViewControls();
 
 	_ftime_s(&endtime);
 	double res = (endtime.time - starttime.time) * 1000 +  (endtime.millitm - starttime.millitm);
@@ -513,7 +652,7 @@ private: System::Void saturationtext_TextChanged(System::Object^  sender, System
 private: System::Void hScrollBar1_Scroll(System::Object^  sender, System::Windows::Forms::ScrollEventArgs^  e) 
 		 {
 			 ProcessImage::SetFov(e->NewValue);
-			 GenerateVoxelInForm();		
+			 RenderIfRealTime();		
 			 labelfov->Text = String::Format( "FOV {0}", e->NewValue );
 
 		 }
@@ -523,13 +662,13 @@ private: System::Void hScrollBarResolution_Scroll(System::Object^  sender, Syste
 			 //on met à jour le bitmap associé
 			 this->m_bitmapdisplay = gcnew Bitmap(ProcessImage::GetResolution(), ProcessImage::GetResolution());
 			this->pictureBoxDest->Image = m_bitmapdisplay;
-			 GenerateVoxelInForm();		
+			 RenderIfRealTime();
 			 labelRes->Text = String::Format( "Resolution {0}", e->NewValue );
 		 }
 private: System::Void hScrollBarFlipDistance_Scroll(System::Object^  sender, System::Windows::Forms::ScrollEventArgs^  e) 
 		 {
 			 ProcessImage::SetFlipDistance(e->NewValue);
-			 GenerateVoxelInForm();		
+			 RenderIfRealTime();		
 			 labelflipdistance->Text = String::Format( "FlipDistance {0}", e->NewValue );		 
 		 }
 private: System::Void pictureBoxDest_MouseMove(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) 

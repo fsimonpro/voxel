@@ -124,6 +124,15 @@ void ProcessImage::Move(int dirx,int diry,int dirz)
 }
 
 
+void ProcessImage::SetView(int x,int y,int z,float angle)
+{
+	g_curview.posx = x;
+	g_curview.posy = y;
+	g_curview.posz = z;
+	g_curview.angle = angle;
+}
+
+
 void ProcessImage::SetExportDir(string dir)
 {
 	g_psddir = dir;
@@ -201,74 +210,26 @@ void ProcessImage::SetName(string name)
 }
 
 //à revoir
-unsigned int  CombineCol(unsigned int col1,unsigned int col2)
-{
-	unsigned int res;
-	BYTE blue = ( ((col1 & 0x000000FF)>>1) + ((col2 & 0x000000FF) >>1));
-	BYTE green = (((col1 & 0x0000FF00) >> 9) + ((col2 & 0x0000FF00) >> 9));
-	BYTE red = (((col1 & 0x00FF0000) >> 17) + ((col2 & 0x00FF0000) >> 17)) ;
-	res = blue  | green << 8 | red << 16  | 0xFF000000   ;
-	return res;
-
-}
-
-//remplit les eventuels "trous" dans l'image
-void PostProcessPicture( unsigned int * Outputforform)
-{
-	int xmain,ymain;
-	unsigned int leftcol,rightcol;
-	for(ymain = 0; ymain < SCREENRESOLUTION ; ymain++) 
-	{
-		for(xmain = 1; xmain < SCREENRESOLUTION-1; xmain++) 
-		{
-			if (Outputforform[xmain + ymain * SCREENRESOLUTION] ==0)
-			{
-				//on fait la moyenne des deux voisins
-				leftcol = Outputforform[xmain -1 + ymain * SCREENRESOLUTION];
-				rightcol = Outputforform[xmain +1 + ymain * SCREENRESOLUTION];
-				if (leftcol != 0 && rightcol != 0)
-					Outputforform[xmain + ymain * SCREENRESOLUTION] = CombineCol(leftcol,rightcol); //prob avec l'alpha ?
-			}
-		}
-	}
-}
-
-
 const Curview* ProcessImage::GetCurView()
 {
 	return &g_curview;
 }
 
-//TODO on passe le tableau entier en paramétre là ?
+//projection inverse : pour chaque colonne de l'ecran on lance un rayon dans la heightmap
+//et on remplit tous les pixels de la colonne (painter front-to-back), il n'y a donc plus de trous
 double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned int * Outputforform)
 {
-	unsigned int xmain,ymain;
-	int curdiffx,curdiffy;
-	float pixelangle;
-	signed int curheight;
-	//unsigned int LastDist[10][10]; //buffer type zbuffer
-	unsigned int curdistsquare;
-	unsigned int widthheightmap;
-	signed int heightonscreen;
-	float curdist;
-	signed int realcurposz = (g_curview.posz* SCREENRESOLUTION) /100;  //en fonction de la résolution de sortie !
-	signed int realscreensize = (450 * SCREENRESOLUTION) / (2 * 250); //on divise par 2 par anticipation
+	const int res = SCREENRESOLUTION;
+	signed int realcurposz = (g_curview.posz* res) /100;  //en fonction de la resolution de sortie !
+	signed int realscreensize = (450 * res) / (2 * 250); //on divise par 2 par anticipation
 
-
-	unsigned int * LastDist;
-	//TODO , utiliser le y buffer de largeur SCREENRESOLUTION avec le systéme de painter
-	//en fait on avance et on note que le plus "haut" pour un x donné
-	LastDist = static_cast<unsigned int *> (malloc(SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int)));
-
-	int curxoutput; 
 	if (!g_curheightmap) 
 		g_curheightmap = FreeImage_Load(FIF_TARGA,"height.tga");
 	if (!g_curalbedo)
 		g_curalbedo = FreeImage_Load(FIF_TARGA,"albedo.tga");
 
 	assert( FreeImage_GetWidth(g_curheightmap) == FreeImage_GetWidth(g_curalbedo) && FreeImage_GetHeight(g_curheightmap) == FreeImage_GetHeight(g_curalbedo));
-	memset(LastDist,0,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
-	memset(Outputforform,0xFF77B5FE,SCREENRESOLUTION*SCREENRESOLUTION*sizeof(unsigned int));
+	memset(Outputforform,0xFF77B5FE,res*res*sizeof(unsigned int));
 
 	BYTE *bitsalbedo = (BYTE*)FreeImage_GetBits(g_curalbedo);
 	unsigned pitchalbedo = FreeImage_GetPitch(g_curalbedo);
@@ -276,71 +237,49 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	BYTE *bitsheightmap = (BYTE*)FreeImage_GetBits(g_curheightmap);
 	unsigned pitchheightmap = FreeImage_GetPitch(g_curheightmap);
 
-	
+	const int widthheightmap = FreeImage_GetWidth(g_curheightmap);
+	const int heightheightmap = FreeImage_GetHeight(g_curheightmap);
+	const float maxdist = sqrt((float)(widthheightmap * widthheightmap + heightheightmap * heightheightmap));
 
-	widthheightmap = FreeImage_GetWidth(g_curheightmap);
-	for(ymain = 0; ymain < FreeImage_GetHeight(g_curheightmap) ; ymain++) 
+	for (int col = 0; col < res; col++)
 	{
-		BYTE *pixelalbedo = (BYTE*)bitsalbedo;
-		BYTE *pixelheightmap = (BYTE*)bitsheightmap;
-		curdiffy = g_curview.posy - ymain;
+		//meme mapping angle/colonne que l'ancienne projection (avec le miroir en sortie)
+		int curxoutput = res - 1 - col;
+		float rayangle = g_curview.angle - FOV_2 + (curxoutput * FOV) / res;
+		float cosa = cos(rayangle);
+		float sina = sin(rayangle);
 
-		for(xmain = 0; xmain < widthheightmap; xmain++) 
+		int maxy = -1; //plus haut pixel deja rempli de cette colonne
+
+		for (float dist = (float)FLIPDISTANCE + 1; dist < maxdist && maxy < res - 1; dist += 1.0f)
 		{
-			curdiffx = g_curview.posx - xmain;
-			pixelangle = atan2((double)curdiffy,(double)curdiffx);
-			
-			if (ABS(pixelangle-g_curview.angle) < (FOV_2)) 
-			{
-				//pixel à l'intérieur !
-				//on calcule le x sur l'image en sortie
-				curxoutput = (((pixelangle - g_curview.angle) + (FOV_2)) * SCREENRESOLUTION) / FOV;
-				assert( curxoutput >= 0 && curxoutput <= SCREENRESOLUTION && " probléme calcul de curxouput !");
+			float fx = g_curview.posx - dist * cosa;
+			float fy = g_curview.posy - dist * sina;
+			if (fx < 0 || fy < 0 || fx >= widthheightmap || fy >= heightheightmap)
+				continue;
+			int x = (int)fx;
+			int y = (int)fy;
 
-				//on récupére la valeur
-				curheight = (*pixelheightmap *SCREENRESOLUTION) >> 8; //il faut adapter à la résolution
-				curdistsquare = (curdiffx)*(curdiffx) + (curdiffy)*(curdiffy);
-				curdist = sqrt((float)curdistsquare);
+			BYTE *pixelheightmap = bitsheightmap + y * pitchheightmap + x;
+			BYTE *pixelalbedo = bitsalbedo + y * pitchalbedo + x * 3;
 
-				if (curdist > FLIPDISTANCE) //attention la flipdistance dépend de la réso de la heightmap, pas de la sortie !
-				{
-					curheight = curheight + realcurposz;
-					//on calcule la hauteur sur l'écran par thalés
-					heightonscreen = (((realscreensize - curheight ) * (curdist - FLIPDISTANCE)) / (curdist)) + curheight; 
+			signed int curheight = ((*pixelheightmap * res) >> 8) + realcurposz;
+			//on calcule la hauteur sur l'ecran par thales
+			int heightonscreen = (int)((((realscreensize - curheight) * (dist - FLIPDISTANCE)) / dist) + curheight);
+			heightonscreen = BOUND(heightonscreen, 0, res - 1);
+			if (heightonscreen <= maxy)
+				continue; //masque par un point plus proche
 
-					//rajout brume bleu
-					BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdistsquare / 15400)));
-					unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
+			unsigned int curdistsquare = (unsigned int)(dist * dist);
+			//rajout brume bleu
+			BYTE blue = MIN(255,(unsigned)pixelalbedo[FI_RGBA_BLUE] + MIN(128,(curdistsquare / 15400)));
+			unsigned int color = blue  | pixelalbedo[FI_RGBA_GREEN]  << 8 | pixelalbedo[FI_RGBA_RED] << 16 | 0xFF << 24 ;
 
-					if (heightonscreen > VOXELSIZE && heightonscreen < SCREENRESOLUTION) //sécurité
-					{
-						for (int yout = heightonscreen;yout >= heightonscreen - VOXELSIZE ;yout--)
-						{
-							unsigned int curind = (SCREENRESOLUTION-curxoutput-1)+ (SCREENRESOLUTION-yout-1) * SCREENRESOLUTION;
-							//il faut calculer la distance par rapport à la position aussi
-							if ((curdistsquare < LastDist[curind])  ||  LastDist[curind] == 0) 
-							{
-								 LastDist[curind] = curdistsquare;
-								Outputforform[curind] = color;
-							}
-							else if ( LastDist[curind] >= curdistsquare) //sinon on peut sortir tt de suite
-								break;
-						}
-					}	
-				}
-
-			}
-			pixelalbedo+=3;
-			pixelheightmap++;
+			for (int yout = maxy + 1; yout <= heightonscreen; yout++)
+				Outputforform[col + (res - yout - 1) * res] = color;
+			maxy = heightonscreen;
 		}
-
-		bitsalbedo+= pitchalbedo;
-		bitsheightmap += pitchheightmap;
-
 	}
-
-
-	PostProcessPicture(Outputforform);
 
 	return 0;
 
