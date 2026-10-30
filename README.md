@@ -31,7 +31,7 @@ Les aperçus de `docs/` sont des versions réduites (512×512) des `.tga` d'orig
 | `src/ProcessImage.cpp`, `include/ProcessImage.h` | Moteur de rendu voxel (`ComputeVoxel`, `Move`, `Turn`, `SetFov`…) |
 | `include/FreeImage.h`, `lib/FreeImage.lib`, `FreeImage.dll` | Bibliothèque FreeImage 3.9.3 |
 | `docs/` | Aperçus utilisés par ce README |
-| `Samples/` | Cartes d'entrée d'exemple (`height*` = altitude, `albedo*` = couleur : canyon, mer, versions HD) ; `height.tga` / `albedo.tga` sont chargées par défaut |
+| `Samples/` | Cartes d'entrée d'exemple (`height*` = altitude, `albedo*` = couleur : canyon, mer HD) ; `height.tga` / `albedo.tga` sont chargées par défaut |
 | `Output/` | Images PNG exportées (créé à la demande, ignoré par Git) |
 | `VoxelRendering.sln`, `.vcxproj` | Solution et projet Visual Studio |
 
