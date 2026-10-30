@@ -28,6 +28,10 @@ namespace
 
 		const long long startx = (long long)p.view.posx << 16;
 		const long long starty = (long long)p.view.posy << 16;
+		//la carte se repete a l'infini en miroir (ping-pong) : pas de raccord aux bords.
+		//les positions bouclent sur une periode de 2 * taille, la 2e moitie est la carte retournee
+		const long long wrapx = (long long)(2 * p.mapwidth) << 16;
+		const long long wrapy = (long long)(2 * p.mapheight) << 16;
 
 		int maxy = -1; //plus haut pixel deja rempli de cette colonne
 		int dist = 1;
@@ -39,17 +43,22 @@ namespace
 			const int segmentend = maxdist;
 
 			//point fixe 16.16 : on recalcule la position au debut du segment puis on additionne
-			long long x = startx - (long long)floor(cosa * dist * 65536.0 + 0.5);
-			long long y = starty - (long long)floor(sina * dist * 65536.0 + 0.5);
+			long long x = (startx - (long long)floor(cosa * dist * 65536.0 + 0.5)) % wrapx;
+			long long y = (starty - (long long)floor(sina * dist * 65536.0 + 0.5)) % wrapy;
+			if (x < 0) x += wrapx;
+			if (y < 0) y += wrapy;
 			const long long dx = -(long long)floor(cosa * step * 65536.0 + 0.5);
 			const long long dy = -(long long)floor(sina * step * 65536.0 + 0.5);
 
 			for (; dist < segmentend; dist += step, x += dx, y += dy)
 			{
-				const int xi = (int)(x >> 16);
-				const int yi = (int)(y >> 16);
-				if ((unsigned)xi >= (unsigned)p.mapwidth || (unsigned)yi >= (unsigned)p.mapheight)
-					continue;
+				//un pas fait au plus un texel : un seul ajustement suffit pour rester dans la carte
+				if (x < 0) x += wrapx; else if (x >= wrapx) x -= wrapx;
+				if (y < 0) y += wrapy; else if (y >= wrapy) y -= wrapy;
+				int xi = (int)(x >> 16);
+				int yi = (int)(y >> 16);
+				if (xi >= p.mapwidth) xi = 2 * p.mapwidth - 1 - xi;
+				if (yi >= p.mapheight) yi = 2 * p.mapheight - 1 - yi;
 
 				const unsigned int texel = p.texture[yi * p.mapwidth + xi];
 				const int curheight = t.heightlut[texel >> 24];
@@ -100,10 +109,8 @@ void RenderVoxel(const VoxelParams & p, unsigned int * out)
 	const int realcurposz = (p.view.posz * res) / 100; //en fonction de la resolution de sortie !
 	const int realscreensize = (450 * res) / (2 * 250); //on divise par 2 par anticipation
 
-	//farclip : distance jusqu'au coin de la carte le plus eloigne de la camera (la camera peut etre hors carte)
-	const double farx = (std::max)(fabs((double)p.view.posx), fabs((double)(p.view.posx - p.mapwidth)));
-	const double fary = (std::max)(fabs((double)p.view.posy), fabs((double)(p.view.posy - p.mapheight)));
-	const int maxdist = (int)sqrt(farx * farx + fary * fary) + 1;
+	//farclip : la carte se repetant, il ne depend plus de la camera ; 1,5 diagonale (au dela la brume a deja tout couvert)
+	const int maxdist = (int)(1.5 * sqrt((double)p.mapwidth * p.mapwidth + (double)p.mapheight * p.mapheight)) + 1;
 
 	FrameTables t;
 	t.factor.resize(maxdist + 1);
