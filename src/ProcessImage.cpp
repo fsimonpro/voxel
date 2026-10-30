@@ -112,11 +112,12 @@ FIBITMAP* LoadMap(const string& path, bool greyscale)
 	return converted;
 }
 
+//les deux images peuvent avoir des tailles differentes : l'albedo est echantillonne en coordonnees uv (0..1)
 bool ProcessImage::SetMapPaths(string heightpath, string albedopath)
 {
 	FIBITMAP* newheight = LoadMap(heightpath,true);
 	FIBITMAP* newalbedo = LoadMap(albedopath,false);
-	if (!newheight || !newalbedo || FreeImage_GetWidth(newheight) != FreeImage_GetWidth(newalbedo) || FreeImage_GetHeight(newheight) != FreeImage_GetHeight(newalbedo))
+	if (!newheight || !newalbedo)
 	{
 		if (newheight) FreeImage_Unload(newheight);
 		if (newalbedo) FreeImage_Unload(newalbedo);
@@ -283,7 +284,6 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	if (!g_curalbedo)
 		g_curalbedo = LoadMap(g_albedopath,false);
 
-	assert( FreeImage_GetWidth(g_curheightmap) == FreeImage_GetWidth(g_curalbedo) && FreeImage_GetHeight(g_curheightmap) == FreeImage_GetHeight(g_curalbedo));
 	//ciel : degrade bleu, plus fonce en haut, clair vers l'horizon
 	for (int row = 0; row < res; row++)
 	{
@@ -304,7 +304,12 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 	const int widthheightmap = FreeImage_GetWidth(g_curheightmap);
 	const int heightheightmap = FreeImage_GetHeight(g_curheightmap);
-	const float maxdist = sqrt((float)(widthheightmap * widthheightmap + heightheightmap * heightheightmap));
+	const int widthalbedo = FreeImage_GetWidth(g_curalbedo);
+	const int heightalbedo = FreeImage_GetHeight(g_curalbedo);
+	//farclip : distance jusqu'au coin de la carte le plus eloigne de la camera (la camera peut etre hors carte)
+	const float farx = MAX(ABS((float)g_curview.posx), ABS((float)(g_curview.posx - widthheightmap)));
+	const float fary = MAX(ABS((float)g_curview.posy), ABS((float)(g_curview.posy - heightheightmap)));
+	const float maxdist = sqrt(farx * farx + fary * fary);
 
 	for (int col = 0; col < res; col++)
 	{
@@ -326,7 +331,10 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 			int y = (int)fy;
 
 			BYTE *pixelheightmap = bitsheightmap + y * pitchheightmap + x;
-			BYTE *pixelalbedo = bitsalbedo + y * pitchalbedo + x * 3;
+			//meme point en uv dans l'albedo
+			int xalbedo = BOUND((int)(fx * widthalbedo / widthheightmap), 0, widthalbedo - 1);
+			int yalbedo = BOUND((int)(fy * heightalbedo / heightheightmap), 0, heightalbedo - 1);
+			BYTE *pixelalbedo = bitsalbedo + yalbedo * pitchalbedo + xalbedo * 3;
 
 			signed int curheight = ((*pixelheightmap * res) >> 8) + realcurposz;
 			//on calcule la hauteur sur l'ecran par thales

@@ -727,7 +727,7 @@ private: bool ApplyMapFields()
 	MarshalString(albedoText->Text,albedopath);
 	if (!ProcessImage::SetMapPaths(heightpath,albedopath))
 	{
-		MessageBox::Show(L"Impossible de charger les images : elles doivent exister et avoir la meme taille.", L"Heightmap / Albedo");
+		MessageBox::Show(L"Impossible de charger les images : verifie que les fichiers existent et sont lisibles.", L"Heightmap / Albedo");
 		return false;
 	}
 	GenerateVoxelInForm();
