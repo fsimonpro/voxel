@@ -26,6 +26,13 @@ namespace ProcessImage
 {
 	void SetImagesPaths(Paths paths);
 
+	//charge la heightmap et l'albedo (meme taille obligatoire) ; false si echec, l'etat precedent est conserve
+	bool SetMapPaths(string heightpath, string albedopath);
+
+	string GetHeightmapPath();
+
+	string GetAlbedoPath();
+
 	void SetExportDir(string dir);
 
 	void SetName(string name);
@@ -41,6 +48,8 @@ namespace ProcessImage
 	void Turn(bool left);
 
 	void Move(int dirx,int diry,int dirz = 0);
+
+	void MoveForward(int dir); //dir > 0 : avance dans la direction de la vue
 
 	void SetView(int x,int y,int z,float angle);
 

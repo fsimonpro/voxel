@@ -1,7 +1,7 @@
 // VoxelRendering.cpp : fichier projet principal.
 
 #include "stdafx.h"
-#include "Form1.h"
+#include "VoxelViewerForm.h"
 
 using namespace VoxelRendering;
 
@@ -13,6 +13,6 @@ int main(cli::array<System::String ^> ^args)
 	Application::SetCompatibleTextRenderingDefault(false); 
 
 	// Créer la fenêtre principale et l'exécuter
-	Application::Run(gcnew Form1());
+	Application::Run(gcnew VoxelViewerForm());
 	return 0;
 }

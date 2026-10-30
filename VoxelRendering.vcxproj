@@ -99,7 +99,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Form1.h">
+    <ClInclude Include="VoxelViewerForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
     <ClInclude Include="include\FreeImage.h" />
@@ -108,8 +108,8 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Form1.resx">
-      <DependentUpon>Form1.h</DependentUpon>
+    <EmbeddedResource Include="VoxelViewerForm.resx">
+      <DependentUpon>VoxelViewerForm.h</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>

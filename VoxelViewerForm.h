@@ -33,7 +33,7 @@ namespace VoxelRendering {
 	using namespace System::IO;
 
 	/// <summary>
-	/// Description résumée de Form1
+	/// Description résumée de VoxelViewerForm
 	///
 	/// AVERTISSEMENT : si vous modifiez le nom de cette classe, vous devrez modifier la
 	///          propriété 'Nom du fichier de ressources' de l'outil de compilation de ressource managée
@@ -41,10 +41,10 @@ namespace VoxelRendering {
 	///          les concepteurs ne pourront pas interagir correctement avec les ressources
 	///          localisées associées à ce formulaire.
 	/// </summary>
-	public ref class Form1 : public System::Windows::Forms::Form
+	public ref class VoxelViewerForm : public System::Windows::Forms::Form
 	{
 	public:
-		Form1(void)
+		VoxelViewerForm(void)
 		{
 			InitializeComponent();
 			//
@@ -55,13 +55,15 @@ namespace VoxelRendering {
 			this->pictureBoxDest->Image = m_bitmapdisplay;
 			SetupExtraUI();
 			GenerateVoxelInForm();
+			//le focus initial ne doit pas etre dans un champ de saisie sinon les fleches y sont captees
+			this->ActiveControl = checkRealTime;
 		}
 
 	protected:
 		/// <summary>
 		/// Nettoyage des ressources utilisées.
 		/// </summary>
-		~Form1()
+		~VoxelViewerForm()
 		{
 			if (components)
 			{
@@ -116,6 +118,12 @@ namespace VoxelRendering {
 	private: System::Windows::Forms::NumericUpDown^  numZ;
 	private: System::Windows::Forms::NumericUpDown^  numAngle;
 	private: bool m_updatingui;
+	private: System::Windows::Forms::Timer^  keyTimer;
+	private: System::Windows::Forms::Button^  buttonSavePng;
+	private: String^ m_rootdir; //dossier contenant Samples et Output
+	private: System::Windows::Forms::Label^  labelAlbedo;
+	private: System::Windows::Forms::TextBox^  albedoText;
+	private: System::Windows::Forms::Button^  buttonAlbedo;
 
 
 
@@ -175,8 +183,8 @@ namespace VoxelRendering {
 			this->label1->Name = L"label1";
 			this->label1->Size = System::Drawing::Size(68, 13);
 			this->label1->TabIndex = 1;
-			this->label1->Text = L"Input Images";
-			this->label1->Click += gcnew System::EventHandler(this, &Form1::label1_Click);
+			this->label1->Text = L"Heightmap";
+			this->label1->Click += gcnew System::EventHandler(this, &VoxelViewerForm::label1_Click);
 			// 
 			// InputFileButton
 			// 
@@ -186,7 +194,7 @@ namespace VoxelRendering {
 			this->InputFileButton->TabIndex = 4;
 			this->InputFileButton->Text = L"...";
 			this->InputFileButton->UseVisualStyleBackColor = true;
-			this->InputFileButton->Click += gcnew System::EventHandler(this, &Form1::InputFileButton_Click);
+			this->InputFileButton->Click += gcnew System::EventHandler(this, &VoxelViewerForm::InputFileButton_Click);
 			// 
 			// OutputNameText
 			// 
@@ -194,9 +202,9 @@ namespace VoxelRendering {
 			this->OutputNameText->Name = L"OutputNameText";
 			this->OutputNameText->Size = System::Drawing::Size(154, 20);
 			this->OutputNameText->TabIndex = 9;
-			this->OutputNameText->Text = L"output.bmp";
-			this->OutputNameText->TextChanged += gcnew System::EventHandler(this, &Form1::OutputNameText_TextChanged);
-			this->OutputNameText->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &Form1::OutputNameText_KeyDown);
+			this->OutputNameText->Text = L"output";
+			this->OutputNameText->TextChanged += gcnew System::EventHandler(this, &VoxelViewerForm::OutputNameText_TextChanged);
+			this->OutputNameText->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &VoxelViewerForm::OutputNameText_KeyDown);
 			// 
 			// label3
 			// 
@@ -205,7 +213,7 @@ namespace VoxelRendering {
 			this->label3->Name = L"label3";
 			this->label3->Size = System::Drawing::Size(89, 13);
 			this->label3->TabIndex = 10;
-			this->label3->Text = L"Output File Name";
+			this->label3->Text = L"Output prefix";
 			// 
 			// ButtonGenerate
 			// 
@@ -215,7 +223,7 @@ namespace VoxelRendering {
 			this->ButtonGenerate->TabIndex = 13;
 			this->ButtonGenerate->Text = L"Generate";
 			this->ButtonGenerate->UseVisualStyleBackColor = true;
-			this->ButtonGenerate->Click += gcnew System::EventHandler(this, &Form1::ButtonGenerate_Click);
+			this->ButtonGenerate->Click += gcnew System::EventHandler(this, &VoxelViewerForm::ButtonGenerate_Click);
 			// 
 			// pictureBoxDest
 			// 
@@ -226,7 +234,7 @@ namespace VoxelRendering {
 			this->pictureBoxDest->SizeMode = System::Windows::Forms::PictureBoxSizeMode::StretchImage;
 			this->pictureBoxDest->TabIndex = 22;
 			this->pictureBoxDest->TabStop = false;
-			this->pictureBoxDest->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::pictureBoxDest_MouseMove);
+			this->pictureBoxDest->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &VoxelViewerForm::pictureBoxDest_MouseMove);
 			// 
 			// InfoDebug
 			// 
@@ -246,20 +254,20 @@ namespace VoxelRendering {
 			this->hScrollBar1->Size = System::Drawing::Size(469, 19);
 			this->hScrollBar1->TabIndex = 24;
 			this->hScrollBar1->Value = 70;
-			this->hScrollBar1->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBar1_Scroll);
+			this->hScrollBar1->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &VoxelViewerForm::hScrollBar1_Scroll);
 			// 
 			// hScrollBarResolution
 			// 
 			this->hScrollBarResolution->LargeChange = 50;
 			this->hScrollBarResolution->Location = System::Drawing::Point(581, 333);
-			this->hScrollBarResolution->Maximum = 500;
+			this->hScrollBarResolution->Maximum = 1073; //1024 + LargeChange - 1 : valeur max atteignable = 1024
 			this->hScrollBarResolution->Minimum = 50;
 			this->hScrollBarResolution->Name = L"hScrollBarResolution";
 			this->hScrollBarResolution->Size = System::Drawing::Size(469, 19);
 			this->hScrollBarResolution->SmallChange = 10;
 			this->hScrollBarResolution->TabIndex = 25;
-			this->hScrollBarResolution->Value = 250;
-			this->hScrollBarResolution->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBarResolution_Scroll);
+			this->hScrollBarResolution->Value = 512;
+			this->hScrollBarResolution->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &VoxelViewerForm::hScrollBarResolution_Scroll);
 			// 
 			// hScrollBarFlipDistance
 			// 
@@ -272,7 +280,7 @@ namespace VoxelRendering {
 			this->hScrollBarFlipDistance->SmallChange = 10;
 			this->hScrollBarFlipDistance->TabIndex = 26;
 			this->hScrollBarFlipDistance->Value = 200;
-			this->hScrollBarFlipDistance->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &Form1::hScrollBarFlipDistance_Scroll);
+			this->hScrollBarFlipDistance->Scroll += gcnew System::Windows::Forms::ScrollEventHandler(this, &VoxelViewerForm::hScrollBarFlipDistance_Scroll);
 			// 
 			// labelfov
 			// 
@@ -300,7 +308,7 @@ namespace VoxelRendering {
 			this->labelflipdistance->Name = L"labelflipdistance";
 			this->labelflipdistance->Size = System::Drawing::Size(65, 13);
 			this->labelflipdistance->TabIndex = 29;
-			this->labelflipdistance->Text = L"FlipDistance";
+			this->labelflipdistance->Text = L"Perspective";
 			this->labelflipdistance->TextAlign = System::Drawing::ContentAlignment::TopCenter;
 			// 
 			// labelposx
@@ -339,7 +347,7 @@ namespace VoxelRendering {
 			this->labelangle->TabIndex = 33;
 			this->labelangle->Text = L"FOV";
 			// 
-			// Form1
+			// VoxelViewerForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
@@ -362,8 +370,8 @@ namespace VoxelRendering {
 			this->Controls->Add(this->InputFileButton);
 			this->Controls->Add(this->label1);
 			this->Controls->Add(this->inputfiletext);
-			this->Name = L"Form1";
-			this->Text = L"Form1";
+			this->Name = L"VoxelViewerForm";
+			this->Text = L"Voxel Rendering";
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->pictureBoxDest))->EndInit();
 			this->ResumeLayout(false);
 			this->PerformLayout();
@@ -381,7 +389,7 @@ private: System::Windows::Forms::NumericUpDown^ MakeNumeric(int decimals, double
 			 n->Increment = System::Decimal(inc);
 			 n->Minimum = System::Decimal(mn);
 			 n->Maximum = System::Decimal(mx);
-			 n->ValueChanged += gcnew System::EventHandler(this, &Form1::ViewValue_Changed);
+			 n->ValueChanged += gcnew System::EventHandler(this, &VoxelViewerForm::ViewValue_Changed);
 			 return n;
 		 }
 
@@ -389,15 +397,56 @@ private: System::Void SetupExtraUI()
 		 {
 			 m_updatingui = false;
 
+			 //deuxieme champ : l'albedo (le premier champ, inputfiletext, est la heightmap)
+			 labelAlbedo = gcnew Label();
+			 labelAlbedo->Text = L"Albedo";
+			 labelAlbedo->AutoSize = true;
+			 albedoText = gcnew TextBox();
+			 buttonAlbedo = gcnew Button();
+			 buttonAlbedo->Text = L"...";
+			 buttonAlbedo->Click += gcnew System::EventHandler(this, &VoxelViewerForm::buttonAlbedo_Click);
+			 this->Controls->Add(labelAlbedo);
+			 this->Controls->Add(albedoText);
+			 this->Controls->Add(buttonAlbedo);
+			 //racine du projet : le dossier courant, celui de l'exe ou son parent, selon ou se trouve Samples
+			 m_rootdir = Environment::CurrentDirectory;
+			 cli::array<String^>^ candidates = { Environment::CurrentDirectory, Application::StartupPath, Path::GetDirectoryName(Application::StartupPath) };
+			 for each (String^ candidate in candidates)
+			 {
+				 if (!String::IsNullOrEmpty(candidate) && Directory::Exists(Path::Combine(candidate, L"Samples")))
+				 {
+					 m_rootdir = candidate;
+					 break;
+				 }
+			 }
+			 inputfiletext->Text = Path::GetFullPath(Path::Combine(m_rootdir, gcnew String(ProcessImage::GetHeightmapPath().c_str())));
+			 albedoText->Text = Path::GetFullPath(Path::Combine(m_rootdir, gcnew String(ProcessImage::GetAlbedoPath().c_str())));
+			 {
+				 string heightpath,albedopath;
+				 MarshalString(inputfiletext->Text,heightpath);
+				 MarshalString(albedoText->Text,albedopath);
+				 ProcessImage::SetMapPaths(heightpath,albedopath);
+			 }
+
+			 buttonSavePng = gcnew Button();
+			 buttonSavePng->Text = L"Save PNG";
+			 buttonSavePng->Click += gcnew System::EventHandler(this, &VoxelViewerForm::buttonSavePng_Click);
+			 this->Controls->Add(buttonSavePng);
+
+			 keyTimer = gcnew System::Windows::Forms::Timer();
+			 keyTimer->Interval = 30;
+			 keyTimer->Tick += gcnew System::EventHandler(this, &VoxelViewerForm::KeyTimer_Tick);
+			 keyTimer->Start();
+
 			 checkRealTime = gcnew CheckBox();
 			 checkRealTime->Text = L"Generate real time";
 			 checkRealTime->AutoSize = true;
 			 checkRealTime->Checked = true;
-			 checkRealTime->CheckedChanged += gcnew System::EventHandler(this, &Form1::checkRealTime_CheckedChanged);
+			 checkRealTime->CheckedChanged += gcnew System::EventHandler(this, &VoxelViewerForm::checkRealTime_CheckedChanged);
 
 			 numX = MakeNumeric(0, 10, -100000, 100000);
 			 numY = MakeNumeric(0, 10, -100000, 100000);
-			 numZ = MakeNumeric(0, 4, -10000, 10000);
+			 numZ = MakeNumeric(0, 4, -10000, 10000); //hauteur = -posz
 			 numAngle = MakeNumeric(2, 0.1, -100, 100);
 
 			 this->Controls->Add(checkRealTime);
@@ -409,11 +458,11 @@ private: System::Void SetupExtraUI()
 			 //les labels deviennent de simples legendes
 			 labelposx->Text = L"X";
 			 labelposy->Text = L"Y";
-			 labelposz->Text = L"Z";
+			 labelposz->Text = L"Hauteur";
 			 labelangle->Text = L"Angle";
 			 labelfov->Text = String::Format( "FOV {0}", hScrollBar1->Value );
 			 labelRes->Text = String::Format( "Resolution {0}", hScrollBarResolution->Value );
-			 labelflipdistance->Text = String::Format( "FlipDistance {0}", hScrollBarFlipDistance->Value );
+			 labelflipdistance->Text = String::Format( "Perspective {0}", hScrollBarFlipDistance->Value );
 
 			 labelfov->AutoSize = false;
 			 labelRes->AutoSize = false;
@@ -422,15 +471,16 @@ private: System::Void SetupExtraUI()
 			 labelRes->TextAlign = ContentAlignment::TopCenter;
 			 labelflipdistance->TextAlign = ContentAlignment::TopCenter;
 
+			 pictureBoxDest->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &VoxelViewerForm::pictureBoxDest_MouseDown);
 			 this->MinimumSize = System::Drawing::Size(640, 480);
-			 this->Resize += gcnew System::EventHandler(this, &Form1::Form1_Resize);
+			 this->Resize += gcnew System::EventHandler(this, &VoxelViewerForm::VoxelViewerForm_Resize);
 			 ApplyLayout();
 		 }
 
 private: System::Void ApplyLayout()
 		 {
 			 const int m = 12;
-			 const int top = 130;
+			 const int top = 140;
 			 int cw = this->ClientSize.Width;
 			 int ch = this->ClientSize.Height;
 
@@ -439,14 +489,19 @@ private: System::Void ApplyLayout()
 			 if (side < 150) side = 150;
 			 pictureBoxDest->SetBounds(m, top, side, side);
 
-			 label1->Location = System::Drawing::Point(m, 8);
-			 inputfiletext->SetBounds(m, 24, Math::Max(100, side - 40), 20);
-			 InputFileButton->SetBounds(m + side - 32, 23, 32, 22);
+			 label1->Location = System::Drawing::Point(m, 4);
+			 inputfiletext->SetBounds(m, 18, Math::Max(100, side - 40), 20);
+			 InputFileButton->SetBounds(m + side - 32, 17, 32, 22);
 
-			 label3->Location = System::Drawing::Point(m, 60);
-			 OutputNameText->SetBounds(m, 76, 154, 20);
-			 ButtonGenerate->SetBounds(m + 170, 68, 116, 34);
-			 InfoDebug->Location = System::Drawing::Point(m + 300, 78);
+			 labelAlbedo->Location = System::Drawing::Point(m, 44);
+			 albedoText->SetBounds(m, 58, Math::Max(100, side - 40), 20);
+			 buttonAlbedo->SetBounds(m + side - 32, 57, 32, 22);
+
+			 label3->Location = System::Drawing::Point(m, 84);
+			 OutputNameText->SetBounds(m, 100, 154, 20);
+			 ButtonGenerate->SetBounds(m + 170, 92, 116, 34);
+			 buttonSavePng->SetBounds(m + 296, 92, 100, 34);
+			 InfoDebug->Location = System::Drawing::Point(m + 410, 102);
 
 			 //panneau de droite
 			 int px = m + side + 20;
@@ -471,7 +526,7 @@ private: System::Void ApplyLayout()
 			 hScrollBarFlipDistance->SetBounds(px, 280, pw, 19);
 		 }
 
-private: System::Void Form1_Resize(System::Object^  sender, System::EventArgs^  e)
+private: System::Void VoxelViewerForm_Resize(System::Object^  sender, System::EventArgs^  e)
 		 {
 			 ApplyLayout();
 		 }
@@ -481,6 +536,27 @@ private: System::Void RenderIfRealTime()
 		 {
 			 if (checkRealTime->Checked)
 				 GenerateVoxelInForm();
+		 }
+
+//sauvegarde l'image affichee en PNG : <nom>_aaaaMMdd_HHmmss.png dans le dossier Output (jamais d'ecrasement)
+private: System::Void buttonSavePng_Click(System::Object^  sender, System::EventArgs^  e)
+		 {
+			 String^ basename = Path::GetFileNameWithoutExtension(OutputNameText->Text);
+			 if (String::IsNullOrEmpty(basename))
+				 basename = L"output";
+			 String^ filename = String::Format("{0}_{1}.png", basename, DateTime::Now.ToString("yyyyMMdd_HHmmss"));
+			 String^ outputdir = Path::Combine(m_rootdir, L"Output");
+			 String^ fullpath = Path::Combine(outputdir, filename);
+			 try
+			 {
+				 Directory::CreateDirectory(outputdir);
+				 m_bitmapdisplay->Save(fullpath, System::Drawing::Imaging::ImageFormat::Png);
+				 InfoDebug->Text = String::Format("sauvegarde : Output\{0}", filename);
+			 }
+			 catch (Exception^ ex)
+			 {
+				 MessageBox::Show(ex->Message, L"Save PNG");
+			 }
 		 }
 
 private: System::Void checkRealTime_CheckedChanged(System::Object^  sender, System::EventArgs^  e)
@@ -494,7 +570,7 @@ private: System::Void ViewValue_Changed(System::Object^  sender, System::EventAr
 		 {
 			 if (m_updatingui)
 				 return;
-			 ProcessImage::SetView( (int)numX->Value, (int)numY->Value, (int)numZ->Value, (float)numAngle->Value );
+			 ProcessImage::SetView( (int)numX->Value, (int)numY->Value, -(int)numZ->Value, (float)numAngle->Value );
 			 RenderIfRealTime();
 		 }
 
@@ -504,7 +580,7 @@ private: System::Void SyncViewControls()
 			 m_updatingui = true;
 			 numX->Value = Math::Max(numX->Minimum, Math::Min(numX->Maximum, System::Decimal(curview->posx)));
 			 numY->Value = Math::Max(numY->Minimum, Math::Min(numY->Maximum, System::Decimal(curview->posy)));
-			 numZ->Value = Math::Max(numZ->Minimum, Math::Min(numZ->Maximum, System::Decimal(curview->posz)));
+			 numZ->Value = Math::Max(numZ->Minimum, Math::Min(numZ->Maximum, System::Decimal(-curview->posz)));
 			 numAngle->Value = Math::Max(numAngle->Minimum, Math::Min(numAngle->Maximum, System::Decimal(curview->angle)));
 			 m_updatingui = false;
 		 }
@@ -559,7 +635,6 @@ private: System::Void GenerateVoxelInForm()
 
 	this->pictureBoxDest->Image = m_bitmapdisplay;
 
-	this->label3->Text = String::Format("Pixel format: {0}", m_bitmapdisplay->PixelFormat );
 
 	const Curview* curview = ProcessImage::GetCurView();
 
@@ -572,6 +647,53 @@ private: System::Void GenerateVoxelInForm()
 
 
 	
+}
+
+[System::Runtime::InteropServices::DllImport("user32.dll")]
+static short GetAsyncKeyState(int vKey);
+
+//vrai si on est en train d'editer un champ (les fleches y servent deja)
+private: bool IsEditingField()
+{
+	Control^ active = this->ActiveControl;
+	return dynamic_cast<NumericUpDown^>(active) != nullptr || dynamic_cast<TextBox^>(active) != nullptr;
+}
+
+private: static bool IsKeyDown(Keys key)
+{
+	return (GetAsyncKeyState((int)key) & 0x8000) != 0;
+}
+
+//les deplacements sont lus par le timer (pas de delai de repetition clavier) ;
+//ici on empeche seulement les fleches de deplacer le focus
+protected: virtual bool ProcessCmdKey(Message% msg, Keys keyData) override
+{
+	if (!IsEditingField())
+	{
+		switch (keyData)
+		{
+		case Keys::Up: case Keys::Down: case Keys::Left: case Keys::Right:
+		case Keys::PageUp: case Keys::PageDown:
+			return true;
+		default: break;
+		}
+	}
+	return Form::ProcessCmdKey(msg, keyData);
+}
+
+private: System::Void KeyTimer_Tick(System::Object^  sender, System::EventArgs^  e)
+{
+	if (Form::ActiveForm != this || IsEditingField())
+		return;
+	bool moved = false;
+	if (IsKeyDown(Keys::Up))       { ProcessImage::MoveForward(1);  moved = true; }
+	if (IsKeyDown(Keys::Down))     { ProcessImage::MoveForward(-1); moved = true; }
+	if (IsKeyDown(Keys::Left))     { ProcessImage::Turn(false);     moved = true; }
+	if (IsKeyDown(Keys::Right))    { ProcessImage::Turn(true);      moved = true; }
+	if (IsKeyDown(Keys::PageUp))   { ProcessImage::Move(0,0,-1);    moved = true; }
+	if (IsKeyDown(Keys::PageDown)) { ProcessImage::Move(0,0,1);     moved = true; }
+	if (moved)
+		GenerateVoxelInForm();
 }
 
 private: System::Void OutputNameText_KeyDown( Object^ /*sender*/, System::Windows::Forms::KeyEventArgs^ e)
@@ -597,54 +719,41 @@ private: System::Void OutputNameText_KeyDown( Object^ /*sender*/, System::Window
 	 GenerateVoxelInForm();
 }
 
+//charge la heightmap et l'albedo des deux champs ; false (et message) si echec
+private: bool ApplyMapFields()
+{
+	string heightpath,albedopath;
+	MarshalString(inputfiletext->Text,heightpath);
+	MarshalString(albedoText->Text,albedopath);
+	if (!ProcessImage::SetMapPaths(heightpath,albedopath))
+	{
+		MessageBox::Show(L"Impossible de charger les images : elles doivent exister et avoir la meme taille.", L"Heightmap / Albedo");
+		return false;
+	}
+	GenerateVoxelInForm();
+	return true;
+}
+
+private: System::Void BrowseMap(TextBox^ target)
+{
+	OpenFileDialog^ dlg = gcnew OpenFileDialog();
+	dlg->Filter = "Images Files|*.tga;*.bmp;*.png;*.gif|All files|*.*";
+	dlg->RestoreDirectory = true;
+	if (dlg->ShowDialog() != System::Windows::Forms::DialogResult::OK)
+		return;
+	String^ previous = target->Text;
+	target->Text = dlg->FileName;
+	if (!ApplyMapFields())
+		target->Text = previous;
+}
+
 private: System::Void InputFileButton_Click(System::Object^  sender, System::EventArgs^  e) {
-			  //Stream^ myStream;
-			 Paths mypaths; 
-			 OpenFileDialog^ openFileDialog1 = gcnew OpenFileDialog;
-
-			 openFileDialog1->InitialDirectory = Application::ExecutablePath;
-			  openFileDialog1->Filter = "Images Files |*.tga;*.bmp; *.png; *.gif";
-			  openFileDialog1->FilterIndex = 2;
-			  openFileDialog1->RestoreDirectory = true;
-			  openFileDialog1->Multiselect = true;
-			  //pas trés pratique -> on va convertir tout en string
-
-			 String^ display = gcnew System::String("");
-			  if ( openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK )
-			  {
-				  mypaths.resize(openFileDialog1->FileNames->Length);
-				  for (int i =0;i<openFileDialog1->FileNames->Length;i++)
-				  {
-					  //MessageBox::Show(openFileDialog1->FileNames[i]);
-					  string s;
-					  MarshalString(openFileDialog1->FileNames[i],s);
-					  mypaths[i] = s;
-					  display = display + ";" + openFileDialog1->FileNames[i];
-				  } 
-				   //ProcessImage::SetImagesPaths(mypaths);
-				   this->inputfiletext->Text = display;
-
-			  }
-			  else
-			  {
-				  return;
-			  }
-
-			  ProcessImage::SetImagesPaths(mypaths);
-
-			  	GenerateVoxelInForm();
-
-			  //on sort toujours l'image dans le même path
-			    string newpath = ProcessImage::GetCurrentImportPath();
-				ProcessImage::SetExportDir(newpath);
-
-//				this->pictureBoxSrc->ImageLocation = display;
-
-
-
+			 BrowseMap(inputfiletext);
 		 }
 
-
+private: System::Void buttonAlbedo_Click(System::Object^  sender, System::EventArgs^  e) {
+			 BrowseMap(albedoText);
+		 }
 
 private: System::Void saturationtext_TextChanged(System::Object^  sender, System::EventArgs^  e) {
 			 //this->saturationtext->Text;
@@ -669,7 +778,12 @@ private: System::Void hScrollBarFlipDistance_Scroll(System::Object^  sender, Sys
 		 {
 			 ProcessImage::SetFlipDistance(e->NewValue);
 			 RenderIfRealTime();		
-			 labelflipdistance->Text = String::Format( "FlipDistance {0}", e->NewValue );		 
+			 labelflipdistance->Text = String::Format( "Perspective {0}", e->NewValue );		 
+		 }
+private: System::Void pictureBoxDest_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e)
+		 {
+			 //un clic sur l'image rend le focus aux touches de deplacement
+			 this->ActiveControl = checkRealTime;
 		 }
 private: System::Void pictureBoxDest_MouseMove(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) 
 		 {

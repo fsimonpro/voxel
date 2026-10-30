@@ -20,6 +20,9 @@
 
 Paths g_curpath;
 
+string g_heightpath = "Samples/height.tga";
+string g_albedopath = "Samples/albedo.tga";
+
 FIBITMAP* g_curpictures;
 FIBITMAP* g_curheightmap;
 FIBITMAP* g_curalbedo;
@@ -51,7 +54,7 @@ signed int VOXELSIZE = 4;
 
 
 
-signed int SCREENRESOLUTION = 250;
+signed int SCREENRESOLUTION = 512;
 
 string ConvertToString(int n)
 {	ostringstream o;
@@ -93,6 +96,51 @@ unsigned int ProcessImage::GetResolution()
 }
 
 
+//charge une map et la convertit au format attendu par ComputeVoxel (8 bits pour la hauteur, 24 bits pour l'albedo)
+FIBITMAP* LoadMap(const string& path, bool greyscale)
+{
+	FREE_IMAGE_FORMAT fif = FreeImage_GetFileType(path.c_str(),0);
+	if (fif == FIF_UNKNOWN)
+		fif = FreeImage_GetFIFFromFilename(path.c_str());
+	if (fif == FIF_UNKNOWN || !FreeImage_FIFSupportsReading(fif))
+		return NULL;
+	FIBITMAP* img = FreeImage_Load(fif,path.c_str(),0);
+	if (!img)
+		return NULL;
+	FIBITMAP* converted = greyscale ? FreeImage_ConvertToGreyscale(img) : FreeImage_ConvertTo24Bits(img);
+	FreeImage_Unload(img);
+	return converted;
+}
+
+bool ProcessImage::SetMapPaths(string heightpath, string albedopath)
+{
+	FIBITMAP* newheight = LoadMap(heightpath,true);
+	FIBITMAP* newalbedo = LoadMap(albedopath,false);
+	if (!newheight || !newalbedo || FreeImage_GetWidth(newheight) != FreeImage_GetWidth(newalbedo) || FreeImage_GetHeight(newheight) != FreeImage_GetHeight(newalbedo))
+	{
+		if (newheight) FreeImage_Unload(newheight);
+		if (newalbedo) FreeImage_Unload(newalbedo);
+		return false;
+	}
+	if (g_curheightmap) FreeImage_Unload(g_curheightmap);
+	if (g_curalbedo) FreeImage_Unload(g_curalbedo);
+	g_curheightmap = newheight;
+	g_curalbedo = newalbedo;
+	g_heightpath = heightpath;
+	g_albedopath = albedopath;
+	return true;
+}
+
+string ProcessImage::GetHeightmapPath()
+{
+	return g_heightpath;
+}
+
+string ProcessImage::GetAlbedoPath()
+{
+	return g_albedopath;
+}
+
 void ProcessImage::SetImagesPaths(Paths paths)
 {
 	g_curpath = paths;
@@ -123,6 +171,13 @@ void ProcessImage::Move(int dirx,int diry,int dirz)
 	g_curview.posz  += dirz*STEPMOVEZ;
 }
 
+
+void ProcessImage::MoveForward(int dir)
+{
+	//la camera regarde vers pos - dist*(cos,sin) (cf ComputeVoxel)
+	g_curview.posx -= (int)floor(dir * STEPMOVE * cos(g_curview.angle) + 0.5f);
+	g_curview.posy -= (int)floor(dir * STEPMOVE * sin(g_curview.angle) + 0.5f);
+}
 
 void ProcessImage::SetView(int x,int y,int z,float angle)
 {
@@ -224,12 +279,22 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 	signed int realscreensize = (450 * res) / (2 * 250); //on divise par 2 par anticipation
 
 	if (!g_curheightmap) 
-		g_curheightmap = FreeImage_Load(FIF_TARGA,"height.tga");
+		g_curheightmap = LoadMap(g_heightpath,true);
 	if (!g_curalbedo)
-		g_curalbedo = FreeImage_Load(FIF_TARGA,"albedo.tga");
+		g_curalbedo = LoadMap(g_albedopath,false);
 
 	assert( FreeImage_GetWidth(g_curheightmap) == FreeImage_GetWidth(g_curalbedo) && FreeImage_GetHeight(g_curheightmap) == FreeImage_GetHeight(g_curalbedo));
-	memset(Outputforform,0xFF77B5FE,res*res*sizeof(unsigned int));
+	//ciel : degrade bleu, plus fonce en haut, clair vers l'horizon
+	for (int row = 0; row < res; row++)
+	{
+		float t = (float)row / (res - 1); //0 en haut, 1 en bas
+		BYTE r = (BYTE)(40 + t * (170 - 40));
+		BYTE g = (BYTE)(100 + t * (210 - 100));
+		BYTE b = (BYTE)(215 + t * (250 - 215));
+		unsigned int skycolor = b | g << 8 | r << 16 | 0xFF << 24;
+		for (int col = 0; col < res; col++)
+			Outputforform[col + row * res] = skycolor;
+	}
 
 	BYTE *bitsalbedo = (BYTE*)FreeImage_GetBits(g_curalbedo);
 	unsigned pitchalbedo = FreeImage_GetPitch(g_curalbedo);
@@ -251,7 +316,7 @@ double ProcessImage::ComputeVoxel(int screenwidth, int screenheight , unsigned i
 
 		int maxy = -1; //plus haut pixel deja rempli de cette colonne
 
-		for (float dist = (float)FLIPDISTANCE + 1; dist < maxdist && maxy < res - 1; dist += 1.0f)
+		for (float dist = 1.0f; dist < maxdist && maxy < res - 1; dist += 1.0f)
 		{
 			float fx = g_curview.posx - dist * cosa;
 			float fy = g_curview.posy - dist * sina;
