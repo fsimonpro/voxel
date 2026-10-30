@@ -1,0 +1,42 @@
+name: Release
+
+# A chaque push sur main : build Release (Win32) puis publication d'une release GitHub
+# versionnee v1.0.<numero de build> contenant un zip pret a lancer.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build (Release / Win32)
+        run: msbuild VoxelRendering.sln /m /nologo /p:Configuration=Release /p:Platform=Win32
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = "1.0.${{ github.run_number }}"
+          $name = "VoxelRendering-v$version-win32"
+          New-Item -ItemType Directory -Path "dist/$name" | Out-Null
+          Copy-Item Release/VoxelRendering.exe, FreeImage.dll, README.md "dist/$name"
+          Copy-Item Samples "dist/$name/Samples" -Recurse
+          Compress-Archive -Path "dist/$name" -DestinationPath "dist/$name.zip"
+          "VERSION=$version" >> $env:GITHUB_ENV
+          "ASSET=dist/$name.zip" >> $env:GITHUB_ENV
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: VoxelRendering v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: ${{ env.ASSET }}
