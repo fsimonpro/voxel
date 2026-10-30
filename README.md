@@ -1,8 +1,8 @@
-# Voxel – SpriteSetMaker
+# VoxelRendering
 
 Ancien projet C++ (janvier 2011) : moteur de rendu **voxel** logiciel de type *Comanche* / *Voxel Space*. À partir d'une carte d'altitude (*heightmap*) et d'une carte de couleur (*albedo*), il calcule une vue en perspective du terrain, sans GPU, directement dans un bitmap affiché par l'interface.
 
-> Projet historique, conservé tel quel. L'historique Git a été importé depuis un dépôt SVN (21 révisions, 5–22 janvier 2011).
+> **Projet historique datant de janvier 2011**, écrit intégralement à la main, donc sans aucune assistance d'IA (les assistants de code actuels n'existaient pas). Le code est conservé tel quel ; seuls le renommage du projet, le portage vers un `.vcxproj` et deux petits correctifs de compatibilité avec les compilateurs récents ont été faits après coup, avec l'aide d'une IA. L'historique Git a été importé depuis un dépôt SVN (21 révisions, 5–22 janvier 2011).
 
 ## Fonctionnalités
 
@@ -17,16 +17,16 @@ Ancien projet C++ (janvier 2011) : moteur de rendu **voxel** logiciel de type *C
 | Chemin | Rôle |
 |---|---|
 | `Form1.h`, `Form1.resx` | Interface Windows Forms (C++/CLI) |
-| `SpriteSetMaker.cpp`, `AssemblyInfo.cpp`, `stdafx.*` | Point d'entrée et fichiers du projet |
+| `VoxelRendering.cpp`, `AssemblyInfo.cpp`, `stdafx.*` | Point d'entrée et fichiers du projet |
 | `src/ProcessImage.cpp`, `include/ProcessImage.h` | Moteur de rendu voxel (`ComputeVoxel`, `Move`, `Turn`, `SetFov`…) |
 | `include/FreeImage.h`, `lib/FreeImage.lib`, `FreeImage.dll` | Bibliothèque FreeImage 3.9.3 |
 | `*.tga`, `*.gif` | Cartes d'exemple (`height*` = altitude, `albedo*` = couleur : canyon, mer, versions HD) |
 | `voxelweb.rar` | Archive d'une version web du rendu voxel |
-| `SpriteSetMaker.sln`, `.vcproj` | Solution Visual Studio (format 2008 ou antérieur) |
+| `VoxelRendering.sln`, `.vcxproj` | Solution et projet Visual Studio |
 
 ## Compilation
 
-- Windows, Visual Studio avec C++/CLI (.NET Framework). Le projet a été créé avec l'assistant d'application *Windows Forms* de Visual C++ ; ouvrir `SpriteSetMaker.sln` et laisser Visual Studio convertir le projet si besoin.
+- Windows, Visual Studio avec C++/CLI (.NET Framework). Le projet a été créé avec l'assistant d'application *Windows Forms* de Visual C++ ; ouvrir `VoxelRendering.sln` (projet `VoxelRendering.vcxproj`, Win32, .NET Framework 4.8).
 - FreeImage est fournie dans `include/`, `lib/` et `FreeImage.dll` (la DLL doit se trouver à côté de l'exécutable).
 
 ## Utilisation

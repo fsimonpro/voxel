@@ -1,0 +1,11 @@
+.vs/
+Backup*/
+UpgradeLog*.htm
+Debug/
+Release/
+*.ncb
+*.suo
+*.user
+*.pdb
+*.ilk
+*.aps

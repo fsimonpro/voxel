@@ -22,7 +22,7 @@ void MarshalString ( System::String ^ s, std::string& os ) {
    Marshal::FreeHGlobal(IntPtr((void*)chars));
 }
 
-namespace SpriteSetMaker {
+namespace VoxelRendering {
 
 	using namespace System;
 	using namespace System::ComponentModel;

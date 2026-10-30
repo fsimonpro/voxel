@@ -11,11 +11,11 @@ using namespace System::Security::Permissions;
 // l'ensemble d'attributs suivant. Changez les valeurs de ces attributs pour modifier les informations
 // associées à un assembly.
 //
-[assembly:AssemblyTitleAttribute("SpriteSetMaker")];
+[assembly:AssemblyTitleAttribute("VoxelRendering")];
 [assembly:AssemblyDescriptionAttribute("")];
 [assembly:AssemblyConfigurationAttribute("")];
 [assembly:AssemblyCompanyAttribute("")];
-[assembly:AssemblyProductAttribute("SpriteSetMaker")];
+[assembly:AssemblyProductAttribute("VoxelRendering")];
 [assembly:AssemblyCopyrightAttribute("Copyright (c)  2010")];
 [assembly:AssemblyTrademarkAttribute("")];
 [assembly:AssemblyCultureAttribute("")];

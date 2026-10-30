@@ -1,12 +1,12 @@
-// SpriteSetMaker.cpp : fichier projet principal.
+// VoxelRendering.cpp : fichier projet principal.
 
 #include "stdafx.h"
 #include "Form1.h"
 
-using namespace SpriteSetMaker;
+using namespace VoxelRendering;
 
 [STAThreadAttribute]
-int main(array<System::String ^> ^args)
+int main(cli::array<System::String ^> ^args)
 {
 	// Activation des effets visuels de Windows XP avant la création de tout contrôle
 	Application::EnableVisualStyles();
